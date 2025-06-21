@@ -49,25 +49,31 @@
         .tab { 
             flex: 1;
             padding: 12px 8px; 
-            background: #f8f9fa; 
+            background: #ffffff; 
             border: none; 
             cursor: pointer; 
             font-size: 0.875rem;
             transition: all 0.3s ease;
             white-space: nowrap;
+            color: #495057;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
         }
 
         .tab.active { 
             background: #007cba; 
             color: white; 
+            border-bottom-color: #005a8b;
         }
 
         .tab:hover {
             background: #e9ecef;
+            color: #333;
         }
 
         .tab.active:hover {
             background: #005a8b;
+            color: white;
         }
 
         .tab-content { 
@@ -77,6 +83,12 @@
             padding: 1rem;
             margin-bottom: 1rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .tab-content.active { 
@@ -101,7 +113,7 @@
             border: 1px solid #ced4da;
             border-radius: 6px;
             font-size: 1rem;
-            transition: border-color 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         select:focus, input:focus {
@@ -117,11 +129,18 @@
             cursor: pointer; 
             margin: 0.5rem 0;
             font-weight: 500;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         button:hover {
             background: #005a8b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         .search-box { 
@@ -159,11 +178,12 @@
             border: 1px solid #e9ecef; 
             border-radius: 8px; 
             background: white;
-            transition: box-shadow 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         .article:hover {
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
         }
 
         .title { 
@@ -193,10 +213,16 @@
             font-size: 0.875rem;
             display: inline-block;
             margin-top: 0.5rem;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            transition: all 0.3s ease;
         }
 
         .url:hover { 
-            text-decoration: underline; 
+            text-decoration: none;
+            background: #e9ecef;
+            color: #005a8b;
         }
 
         .article-actions { 
@@ -204,15 +230,21 @@
             display: flex;
             gap: 0.5rem;
             flex-wrap: wrap;
+            align-items: stretch;
         }
 
         .article-actions button { 
-            padding: 8px 12px; 
-            font-size: 0.8rem; 
+            padding: 10px 16px; 
+            font-size: 0.875rem; 
             background: #28a745; 
             margin: 0;
             flex: 1;
             min-width: 120px;
+            border-radius: 6px;
+            font-weight: 500;
+            white-space: nowrap;
+            text-align: center;
+            transition: all 0.3s ease;
         }
 
         .article-actions button.secondary { 
@@ -221,9 +253,30 @@
 
         .article-actions button:hover {
             transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .article-actions button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
 
         /* Mobile-first responsive design */
+        @media (max-width: 767px) {
+            .article-actions {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .article-actions button {
+                flex: none;
+                width: 100%;
+                min-width: auto;
+                padding: 12px 16px;
+                font-size: 0.9rem;
+            }
+        }
+
         @media (min-width: 768px) {
             .container {
                 padding: 0 24px;
@@ -271,11 +324,14 @@
 
             .article-actions {
                 flex-wrap: nowrap;
+                gap: 0.75rem;
             }
 
             .article-actions button {
-                flex: none;
+                flex: 1;
                 min-width: 140px;
+                padding: 12px 20px;
+                font-size: 0.9rem;
             }
         }
 
@@ -316,6 +372,27 @@
             border-radius: 6px;
             border: 1px solid #f5c6cb;
         }
+
+        /* Tab indicator */
+        .tab-indicator {
+            position: relative;
+        }
+
+        .tab-indicator::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #007cba;
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .tab.active::after {
+            transform: scaleX(1);
+        }
     </style>
 </head>
 <body>
@@ -323,9 +400,9 @@
         <h1>NewsAPI Enhanced - Drill Down on Headlines</h1>
         
         <div class="tabs">
-            <button class="tab active" onclick="showTab('headlines')">Top Headlines</button>
-            <button class="tab" onclick="showTab('search')">Search News</button>
-            <button class="tab" onclick="showTab('sources')">News Sources</button>
+            <button class="tab active" onclick="showTab('headlines')">📰 Top Headlines</button>
+            <button class="tab" onclick="showTab('search')">🔍 Search News</button>
+            <button class="tab" onclick="showTab('sources')">📡 News Sources</button>
         </div>
         
         <!-- Top Headlines Tab -->
@@ -364,7 +441,7 @@
                 </div>
             </div>
             
-            <button onclick="getHeadlines()">Get Top Headlines</button>
+            <button onclick="getHeadlines()">🚀 Get Top Headlines</button>
         </div>
         
         <!-- Search News Tab -->
@@ -413,7 +490,7 @@
                 </div>
             </div>
             
-            <button onclick="searchNews()">Search News</button>
+            <button onclick="searchNews()">🔍 Search News</button>
         </div>
         
         <!-- Sources Tab -->
@@ -454,7 +531,7 @@
                 </div>
             </div>
             
-            <button onclick="getSources()">Get Sources</button>
+            <button onclick="getSources()">📡 Get Sources</button>
         </div>
         
         <div id="result" class="result" style="display: none;"></div>
@@ -515,10 +592,6 @@
                                 <div class="description">${article.description || 'No description available'}</div>
                                 <div class="source">Source: ${article.source.name} | Published: ${new Date(article.publishedAt).toLocaleString()}</div>
                                 ${article.url ? `<div><a href="${article.url}" target="_blank" class="url">Read Full Article</a></div>` : ''}
-                                <div class="article-actions">
-                                    <button onclick="searchRelated('${article.title}')">Search Related</button>
-                                    <button onclick="getSourceInfo('${article.source.name}')" class="secondary">Source Info</button>
-                                </div>
                             </div>
                         `;
                     });
@@ -632,17 +705,6 @@
             } catch (error) {
                 resultDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
             }
-        }
-
-        function searchRelated(title) {
-            document.getElementById('searchQuery').value = title;
-            showTab('search');
-        }
-
-        function getSourceInfo(sourceName) {
-            document.getElementById('sourceCategory').value = '';
-            showTab('sources');
-            // You could add logic to filter by source name here
         }
     </script>
 </body>
