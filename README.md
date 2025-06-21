@@ -104,6 +104,36 @@ const result = await mcpClient.callTool('get_sources', {
 2. Set your `NEWS_API_KEY` environment variable
 3. Restart Cursor to load the MCP server
 
+## Netlify Deployment
+
+This project includes Netlify serverless functions for web deployment:
+
+### Deploy to Netlify:
+
+1. **Connect your GitHub repository** to Netlify
+2. **Set environment variables** in Netlify dashboard:
+   - `NEWS_API_KEY`: Your NewsAPI key
+3. **Deploy settings:**
+   - Build command: `npm install`
+   - Publish directory: `public`
+   - Functions directory: `netlify/functions`
+
+### Netlify Functions:
+
+- `/api/test-headlines` - Get top headlines
+- `/api/search-news` - Search for news articles  
+- `/api/get-sources` - Get news sources
+
+### Local Netlify Testing:
+
+```bash
+# Install Netlify CLI
+npm install -g netlify-cli
+
+# Test locally
+netlify dev
+```
+
 ## Error Handling
 
 The server includes comprehensive error handling for:
