@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "newsapi": {
+      "command": "node",
+      "args": ["src/server.js"],
+      "env": {
+        "NEWS_API_KEY": "${NEWS_API_KEY}"
+      }
+    }
+  }
+} 

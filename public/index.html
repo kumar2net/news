@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NewsAPI Test - Enhanced</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .form-group { margin: 10px 0; }
+        label { display: inline-block; width: 100px; }
+        button { padding: 10px 20px; background: #007cba; color: white; border: none; cursor: pointer; margin: 5px; }
+        .result { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+        .article { margin: 10px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: white; }
+        .title { font-weight: bold; color: #333; font-size: 1.1em; margin-bottom: 8px; }
+        .description { color: #666; margin: 8px 0; line-height: 1.4; }
+        .source { color: #999; font-size: 0.9em; margin-bottom: 8px; }
+        .url { color: #007cba; text-decoration: none; }
+        .url:hover { text-decoration: underline; }
+        .tabs { display: flex; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; background: #eee; border: none; cursor: pointer; }
+        .tab.active { background: #007cba; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .search-box { width: 300px; padding: 8px; margin: 5px; }
+        .date-input { padding: 8px; margin: 5px; }
+        .stats { background: #e8f4fd; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .article-actions { margin-top: 10px; }
+        .article-actions button { padding: 5px 10px; font-size: 0.9em; background: #28a745; }
+        .article-actions button.secondary { background: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NewsAPI Enhanced - Drill Down on Headlines</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('headlines')">Top Headlines</button>
+            <button class="tab" onclick="showTab('search')">Search News</button>
+            <button class="tab" onclick="showTab('sources')">News Sources</button>
+        </div>
+        
+        <!-- Top Headlines Tab -->
+        <div id="headlines" class="tab-content active">
+            <h2>Get Top Headlines</h2>
+            <div class="form-group">
+                <label>Country:</label>
+                <select id="country">
+                    <option value="us">United States</option>
+                    <option value="gb">United Kingdom</option>
+                    <option value="in">India</option>
+                    <option value="au">Australia</option>
+                    <option value="ca">Canada</option>
+                    <option value="de">Germany</option>
+                    <option value="fr">France</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Category:</label>
+                <select id="category">
+                    <option value="">General</option>
+                    <option value="technology">Technology</option>
+                    <option value="business">Business</option>
+                    <option value="sports">Sports</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="health">Health</option>
+                    <option value="science">Science</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Count:</label>
+                <input type="number" id="pageSize" value="10" min="1" max="20">
+            </div>
+            
+            <button onclick="getHeadlines()">Get Top Headlines</button>
+        </div>
+        
+        <!-- Search News Tab -->
+        <div id="search" class="tab-content">
+            <h2>Search News</h2>
+            <div class="form-group">
+                <label>Search:</label>
+                <input type="text" id="searchQuery" class="search-box" placeholder="e.g., artificial intelligence, climate change">
+            </div>
+            
+            <div class="form-group">
+                <label>Language:</label>
+                <select id="language">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Sort By:</label>
+                <select id="sortBy">
+                    <option value="publishedAt">Published Date</option>
+                    <option value="relevancy">Relevancy</option>
+                    <option value="popularity">Popularity</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>From Date:</label>
+                <input type="date" id="fromDate" class="date-input">
+            </div>
+            
+            <div class="form-group">
+                <label>To Date:</label>
+                <input type="date" id="toDate" class="date-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Count:</label>
+                <input type="number" id="searchPageSize" value="10" min="1" max="20">
+            </div>
+            
+            <button onclick="searchNews()">Search News</button>
+        </div>
+        
+        <!-- Sources Tab -->
+        <div id="sources" class="tab-content">
+            <h2>Get News Sources</h2>
+            <div class="form-group">
+                <label>Category:</label>
+                <select id="sourceCategory">
+                    <option value="">All Categories</option>
+                    <option value="technology">Technology</option>
+                    <option value="business">Business</option>
+                    <option value="sports">Sports</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="health">Health</option>
+                    <option value="science">Science</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Language:</label>
+                <select id="sourceLanguage">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Country:</label>
+                <select id="sourceCountry">
+                    <option value="us">United States</option>
+                    <option value="gb">United Kingdom</option>
+                    <option value="in">India</option>
+                    <option value="au">Australia</option>
+                </select>
+            </div>
+            
+            <button onclick="getSources()">Get Sources</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        async function getHeadlines() {
+            const country = document.getElementById('country').value;
+            const category = document.getElementById('category').value;
+            const pageSize = document.getElementById('pageSize').value;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Loading headlines...';
+            
+            try {
+                const params = new URLSearchParams({
+                    country: country,
+                    pageSize: pageSize
+                });
+                if (category) params.append('category', category);
+                
+                const response = await fetch(`/test-headlines?${params}`);
+                const data = await response.json();
+                
+                if (data.articles) {
+                    let html = `<div class="stats">
+                        <strong>Found ${data.totalResults} articles</strong> | 
+                        Country: ${country.toUpperCase()} | 
+                        Category: ${category || 'General'} | 
+                        Showing: ${data.articles.length} articles
+                    </div>`;
+                    
+                    data.articles.forEach((article, index) => {
+                        html += `
+                            <div class="article">
+                                <div class="title">${article.title}</div>
+                                <div class="description">${article.description || 'No description available'}</div>
+                                <div class="source">Source: ${article.source.name} | Published: ${new Date(article.publishedAt).toLocaleString()}</div>
+                                ${article.url ? `<div><a href="${article.url}" target="_blank" class="url">Read Full Article</a></div>` : ''}
+                                <div class="article-actions">
+                                    <button onclick="searchRelated('${article.title}')">Search Related</button>
+                                    <button onclick="getSourceInfo('${article.source.name}')" class="secondary">Source Info</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = '<p>Error: ' + JSON.stringify(data) + '</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p>Error: ' + error.message + '</p>';
+            }
+        }
+
+        async function searchNews() {
+            const query = document.getElementById('searchQuery').value;
+            const language = document.getElementById('language').value;
+            const sortBy = document.getElementById('sortBy').value;
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const pageSize = document.getElementById('searchPageSize').value;
+            
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Searching news...';
+            
+            try {
+                const params = new URLSearchParams({
+                    q: query,
+                    language: language,
+                    sortBy: sortBy,
+                    pageSize: pageSize
+                });
+                if (fromDate) params.append('from', fromDate);
+                if (toDate) params.append('to', toDate);
+                
+                const response = await fetch(`/search-news?${params}`);
+                const data = await response.json();
+                
+                if (data.articles) {
+                    let html = `<div class="stats">
+                        <strong>Found ${data.totalResults} articles for "${query}"</strong> | 
+                        Language: ${language.toUpperCase()} | 
+                        Sort: ${sortBy} | 
+                        Showing: ${data.articles.length} articles
+                    </div>`;
+                    
+                    data.articles.forEach(article => {
+                        html += `
+                            <div class="article">
+                                <div class="title">${article.title}</div>
+                                <div class="description">${article.description || 'No description available'}</div>
+                                <div class="source">Source: ${article.source.name} | Published: ${new Date(article.publishedAt).toLocaleString()}</div>
+                                ${article.url ? `<div><a href="${article.url}" target="_blank" class="url">Read Full Article</a></div>` : ''}
+                            </div>
+                        `;
+                    });
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = '<p>Error: ' + JSON.stringify(data) + '</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p>Error: ' + error.message + '</p>';
+            }
+        }
+
+        async function getSources() {
+            const category = document.getElementById('sourceCategory').value;
+            const language = document.getElementById('sourceLanguage').value;
+            const country = document.getElementById('sourceCountry').value;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Loading sources...';
+            
+            try {
+                const params = new URLSearchParams({
+                    language: language,
+                    country: country
+                });
+                if (category) params.append('category', category);
+                
+                const response = await fetch(`/get-sources?${params}`);
+                const data = await response.json();
+                
+                if (data.sources) {
+                    let html = `<div class="stats">
+                        <strong>Found ${data.sources.length} sources</strong> | 
+                        Country: ${country.toUpperCase()} | 
+                        Language: ${language.toUpperCase()} | 
+                        Category: ${category || 'All'}
+                    </div>`;
+                    
+                    data.sources.forEach(source => {
+                        html += `
+                            <div class="article">
+                                <div class="title">${source.name}</div>
+                                <div class="description">${source.description || 'No description available'}</div>
+                                <div class="source">Category: ${source.category} | Language: ${source.language} | Country: ${source.country}</div>
+                                ${source.url ? `<div><a href="${source.url}" target="_blank" class="url">Visit Source</a></div>` : ''}
+                            </div>
+                        `;
+                    });
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = '<p>Error: ' + JSON.stringify(data) + '</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p>Error: ' + error.message + '</p>';
+            }
+        }
+
+        function searchRelated(title) {
+            document.getElementById('searchQuery').value = title;
+            showTab('search');
+        }
+
+        function getSourceInfo(sourceName) {
+            document.getElementById('sourceCategory').value = '';
+            showTab('sources');
+            // You could add logic to filter by source name here
+        }
+    </script>
+</body>
+</html> 
