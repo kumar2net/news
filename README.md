@@ -10,7 +10,10 @@ A Model Context Protocol (MCP) server that provides access to NewsAPI for fetchi
 
 1. **Install dependencies:**
    ```bash
+   # MCP server
    npm install
+   # React dashboard (Berry-inspired UI)
+   cd web && npm install
    ```
 
 2. **Configure environment variables:**
@@ -23,6 +26,7 @@ A Model Context Protocol (MCP) server that provides access to NewsAPI for fetchi
      DEFAULT_LANGUAGE=en
      DEFAULT_PAGE_SIZE=20
      ```
+   - Optional (frontend-only, for local dev): create `web/.env` and set `VITE_NEWS_API_KEY` so Vite can call NewsAPI directly while running on `localhost`.
 
 3. **Get a NewsAPI key:**
    - Visit [https://newsapi.org/](https://newsapi.org/)
@@ -38,16 +42,17 @@ A Model Context Protocol (MCP) server that provides access to NewsAPI for fetchi
 
 ## Usage
 
-### Start the server:
+### Start the MCP server:
 ```bash
 npm start
 ```
 
-### Test the enhanced web interface:
+### Run the React dashboard locally:
 ```bash
-node test-web.js
+cd web
+npm run dev
 ```
-Then visit `http://localhost:3001` for the drill-down interface.
+Then visit the Vite dev URL (usually `http://127.0.0.1:5173/`). Keep the MCP server running in a separate terminal if you need the stdio tools.
 
 ### Available Tools:
 
@@ -62,11 +67,12 @@ Then visit `http://localhost:3001` for the drill-down interface.
 
 ## Environment Variables
 
-- `NEWS_API_KEY`: Your NewsAPI key (required)
+- `NEWS_API_KEY`: Your NewsAPI key (required – used by MCP server and Vercel API routes)
 - `NEWS_API_BASE_URL`: NewsAPI base URL (default: https://newsapi.org/v2)
 - `DEFAULT_COUNTRY`: Default country for headlines (default: us)
 - `DEFAULT_LANGUAGE`: Default language (default: en)
 - `DEFAULT_PAGE_SIZE`: Default number of articles (default: 20)
+- `VITE_NEWS_API_KEY`: Optional; only needed in `web/.env` when calling NewsAPI directly from the Vite dev server. Leave unset in production so the browser hits `/api/search-news` instead of calling NewsAPI from the client.
 
 ## Example Usage
 
@@ -106,34 +112,38 @@ const result = await mcpClient.callTool('get_sources', {
 
 ## Vercel Deployment
 
-This project now targets Vercel for hosting static assets and serverless API routes.
+The `web/` directory hosts the React dashboard and API routes. Configure Vercel so that it treats `web` as the project root.
 
-### Deploy to Vercel:
+### Deploy to Vercel
 
-1. **Connect your GitHub repository** in the Vercel dashboard (or run `vercel` locally).
-2. **Set environment variables** for the project:
-   - `NEWS_API_KEY` (or `VITE_NEWS_API_KEY` if sharing with the frontend)
-3. **Default settings** work out-of-the-box:
-   - Build command: `npm install` (no build step required unless you add one)
-   - Output directory: `public`
-   - API directory: `api`
+1. Import the repository into Vercel (or run `vercel` locally).
+2. In **Project → Settings → General → Monorepo**, enable the toggle and set **Root Directory** to `web`.
+3. Build settings (Vercel auto-detects Vite):
+   - Build command: `npm run build`
+   - Output directory: `dist`
+4. Environment variables:
+   - `NEWS_API_KEY` (Production + Preview + Development) → required for the serverless routes under `web/api/*`.
+   - Leave `VITE_NEWS_API_KEY` unset in Production so browsers hit `/api/search-news`. For local dev, keep it in `web/.env`.
+5. Save changes and redeploy the latest build (Deployments → Redeploy) so the new settings take effect.
 
-### API Routes (Vercel Functions):
+### API Routes (Vercel Functions)
 
-- `/api/top-headlines` - Get top headlines
-- `/api/search-news` - Search for news articles
-- `/api/get-sources` - Get news sources
+- `/api/top-headlines`
+- `/api/search-news`
+- `/api/get-sources`
 
-### Local Vercel Testing:
+Each route lives in `web/api/` and runs on the Node.js runtime provided by Vercel, forwarding requests to NewsAPI with your key securely injected from the environment.
+
+### Local Vercel Testing
 
 ```bash
-# Install Vercel CLI
+# Install Vercel CLI (optional)
 npm install -g vercel
 
-# Pull remote environment variables (optional)
-vercel env pull .env.local
+# Pull remote environment variables for local simulation
+vercel env pull web/.env.local
 
-# Run the local dev server
+# From the repo root
 vercel dev
 ```
 
