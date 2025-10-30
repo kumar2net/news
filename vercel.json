@@ -1,9 +1,1 @@
-{
-  "buildCommand": "npm install --prefix web && npm run build --prefix web",
-  "outputDirectory": "web/dist",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
-}
+{ "functions": { "api/**/*.js": { "runtime": "nodejs18.x" } } }
