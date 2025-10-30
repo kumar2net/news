@@ -104,34 +104,37 @@ const result = await mcpClient.callTool('get_sources', {
 2. Set your `NEWS_API_KEY` environment variable
 3. Restart Cursor to load the MCP server
 
-## Netlify Deployment
+## Vercel Deployment
 
-This project includes Netlify serverless functions for web deployment:
+This project now targets Vercel for hosting static assets and serverless API routes.
 
-### Deploy to Netlify:
+### Deploy to Vercel:
 
-1. **Connect your GitHub repository** to Netlify
-2. **Set environment variables** in Netlify dashboard:
-   - `NEWS_API_KEY`: Your NewsAPI key
-3. **Deploy settings:**
-   - Build command: `npm install`
-   - Publish directory: `public`
-   - Functions directory: `netlify/functions`
+1. **Connect your GitHub repository** in the Vercel dashboard (or run `vercel` locally).
+2. **Set environment variables** for the project:
+   - `NEWS_API_KEY` (or `VITE_NEWS_API_KEY` if sharing with the frontend)
+3. **Default settings** work out-of-the-box:
+   - Build command: `npm install` (no build step required unless you add one)
+   - Output directory: `public`
+   - API directory: `api`
 
-### Netlify Functions:
+### API Routes (Vercel Functions):
 
-- `/api/test-headlines` - Get top headlines
-- `/api/search-news` - Search for news articles  
+- `/api/top-headlines` - Get top headlines
+- `/api/search-news` - Search for news articles
 - `/api/get-sources` - Get news sources
 
-### Local Netlify Testing:
+### Local Vercel Testing:
 
 ```bash
-# Install Netlify CLI
-npm install -g netlify-cli
+# Install Vercel CLI
+npm install -g vercel
 
-# Test locally
-netlify dev
+# Pull remote environment variables (optional)
+vercel env pull .env.local
+
+# Run the local dev server
+vercel dev
 ```
 
 ## Error Handling
