@@ -30,7 +30,12 @@ export default function App() {
 
   return (
     <Box sx={{ pb: { xs: 7, md: 0 } }}>
-      <AppBar color="surface" position="fixed" enableColorOnDark>
+      <AppBar
+        color="default"
+        position="fixed"
+        enableColorOnDark
+        sx={{ bgcolor: "background.paper" }}
+      >
         <Toolbar>
           <IconButton edge="start" color="inherit">
             <MenuIcon />

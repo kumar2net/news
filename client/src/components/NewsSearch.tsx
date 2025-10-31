@@ -9,13 +9,13 @@ import {
   Chip,
   CircularProgress,
   Divider,
-  Grid,
   Link as MuiLink,
   Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -303,7 +303,7 @@ export default function NewsSearch() {
             </Typography>
             <Grid container spacing={3}>
               {articles.map((article) => (
-                <Grid item xs={12} md={6} key={article.url}>
+                <Grid key={article.url} size={{ xs: 12, md: 6 }}>
                   <Card
                     variant="outlined"
                     sx={{

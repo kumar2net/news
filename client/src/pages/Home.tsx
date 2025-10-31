@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Stack, Typography } from "@mui/material";
 import NewsSearch from "../components/NewsSearch";
 
