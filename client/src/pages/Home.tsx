@@ -18,6 +18,8 @@ import {
 } from "@mui/material";
 import * as React from "react";
 import NewsSearch, { EMPTY_BRIEFING_SUMMARY } from "../components/NewsSearch";
+import TopHeadlinesPanel from "../components/TopHeadlinesPanel";
+import SourceSpotlight from "../components/SourceSpotlight";
 import type { BriefingSummary, Timeframe } from "../components/NewsSearch";
 
 const timeframeOptions: { value: Timeframe; label: string; helper: string }[] = [
@@ -153,6 +155,8 @@ export default function Home() {
       </Paper>
 
       <NewsSearch timeframe={timeframe} onSummaryChange={setSummary} />
+      <TopHeadlinesPanel />
+      <SourceSpotlight />
     </Stack>
   );
 }
