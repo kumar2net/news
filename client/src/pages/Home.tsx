@@ -1,5 +1,6 @@
 import { Stack, Typography } from "@mui/material";
 import NewsSearch from "../components/NewsSearch";
+import NewsFeed from "../components/NewsFeed.jsx";
 
 export default function Home() {
   return (
@@ -15,6 +16,8 @@ export default function Home() {
       </Stack>
 
       <NewsSearch />
+
+      <NewsFeed />
     </Stack>
   );
 }

@@ -72,8 +72,9 @@ export default function NewsSearch() {
 
   const apiKey = React.useMemo(() => {
     try {
-      const value = (import.meta as any)?.env?.VITE_NEWS_API_KEY;
-      return typeof value === "string" ? value : undefined;
+      const envRecord = import.meta.env as unknown as Record<string, unknown>;
+      const value = envRecord?.VITE_NEWS_API_KEY;
+      return typeof value === "string" && value.length > 0 ? value : undefined;
     } catch {
       return undefined;
     }
