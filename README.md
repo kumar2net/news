@@ -1,178 +1,130 @@
-# NewsAPI MCP Server
+# NewsAPI MCP Server & Dashboard
 
-A Model Context Protocol (MCP) server that provides access to NewsAPI for fetching news articles and headlines.
+This repository hosts two pieces that work together:
 
-## ⚠️ SECURITY WARNING
+- **MCP server** (`src/server.js`) — exposes NewsAPI via the Model Context Protocol.
+- **News dashboard** (`client/`) — Vite + React + MUI interface that consumes the MCP tools / REST proxy.
 
-**NEVER commit your API key to version control!** This project is configured to exclude sensitive files, but always verify before pushing to GitHub.
+Both are configured to use the same NewsAPI credentials so you can explore articles locally or from Vercel.
+
+## ⚠️ Security
+
+**Never commit API keys.** `.env` and client `.env.*` files are already ignored, but always double-check before pushing.
+
+## Project Layout
+
+- `api/` – lightweight Express proxy for local development (`pnpm run dev`).
+- `client/` – Vite/MUI dashboard and Vercel serverless functions (`client/api/*`).
+- `src/` – MCP server implementation.
+- `env.example` – template for the environment variables shared by MCP + API proxy.
+
+## Prerequisites
+
+- Node.js 18+ (project currently tested on Node 24.x)
+- [pnpm](https://pnpm.io/) 8+
+- NewsAPI key ([newsapi.org](https://newsapi.org/))
 
 ## Setup
 
-1. **Install dependencies:**
+1. **Install dependencies**
+
    ```bash
-   # MCP server
-   npm install
-   # React dashboard (Berry-inspired UI)
-   cd web && npm install
+   pnpm install
    ```
 
-2. **Configure environment variables:**
-   - Copy `env.example` to `.env`
-   - Add your NewsAPI key to the `.env` file:
-     ```
-     NEWS_API_KEY=your_actual_api_key_here
-     NEWS_API_BASE_URL=https://newsapi.org/v2
-     DEFAULT_COUNTRY=us
-     DEFAULT_LANGUAGE=en
-     DEFAULT_PAGE_SIZE=20
-     ```
-   - Optional (frontend-only, for local dev): create `web/.env` and set `VITE_NEWS_API_KEY` so Vite can call NewsAPI directly while running on `localhost`.
+   This installs root dependencies (MCP + Express proxy) and the Vite client via pnpm’s workspace awareness.
 
-3. **Get a NewsAPI key:**
-   - Visit [https://newsapi.org/](https://newsapi.org/)
-   - Sign up for a free account
-   - Get your API key from the dashboard
+2. **Configure environment variables**
 
-## Security
+   ```bash
+   cp env.example .env
+   ```
 
-- ✅ API keys are stored in environment variables
-- ✅ `.env` file is gitignored to prevent accidental commits
-- ✅ All test files use environment variables (no hardcoded keys)
-- ✅ Never commit your actual API key to version control
+   Edit `.env` with your NewsAPI key and optional defaults:
 
-## Usage
+   ```ini
+   NEWS_API_KEY=your_actual_api_key
+   NEWS_API_BASE_URL=https://newsapi.org/v2
+   DEFAULT_COUNTRY=us
+   DEFAULT_LANGUAGE=en
+   DEFAULT_PAGE_SIZE=20
+   ```
 
-### Start the MCP server:
-```bash
-npm start
-```
+   Optional: create `client/.env.local` with `VITE_NEWS_API_KEY` if you want the browser to call NewsAPI directly during dev. When unset, the UI goes through the `/api/*` proxy.
 
-### Run the React dashboard locally:
-```bash
-cd web
-npm run dev
-```
-Then visit the Vite dev URL (usually `http://127.0.0.1:5173/`). Keep the MCP server running in a separate terminal if you need the stdio tools.
+3. **(Optional) Cursor integration**
 
-### Available Tools:
+   - Copy `cursor-mcp-config.json` into your Cursor config directory.
+   - Ensure `NEWS_API_KEY` is exported in the shell that launches Cursor.
 
-1. **get_top_headlines** - Get top headlines
-   - Parameters: country, category, pageSize, page
+## Local Development
 
-2. **search_news** - Search for news articles
-   - Parameters: query (required), language, sortBy, pageSize, from, to
+- **Run MCP + dashboard together**
 
-3. **get_sources** - Get available news sources
-   - Parameters: category, language, country
+  ```bash
+  pnpm run dev
+  ```
 
-## Environment Variables
+  This launches the Express proxy (`http://localhost:3000`) and the Vite client (`http://localhost:5173`). The client proxies `/api/*` requests to the local Express server.
 
-- `NEWS_API_KEY`: Your NewsAPI key (required – used by MCP server and Vercel API routes)
-- `NEWS_API_BASE_URL`: NewsAPI base URL (default: https://newsapi.org/v2)
-- `DEFAULT_COUNTRY`: Default country for headlines (default: us)
-- `DEFAULT_LANGUAGE`: Default language (default: en)
-- `DEFAULT_PAGE_SIZE`: Default number of articles (default: 20)
-- `VITE_NEWS_API_KEY`: Optional; only needed in `web/.env` when calling NewsAPI directly from the Vite dev server. Leave unset in production so the browser hits `/api/search-news` instead of calling NewsAPI from the client.
+- **Run pieces independently**
 
-## Example Usage
+  ```bash
+  pnpm run backend   # Express API proxy
+  pnpm run frontend  # Dashboard (Vite dev server)
+  pnpm run mcp       # MCP stdio server
+  ```
 
-### Get top headlines for technology:
-```javascript
-// Using the MCP server
-const result = await mcpClient.callTool('get_top_headlines', {
-  category: 'technology',
-  country: 'us',
-  pageSize: 10
-});
-```
+## MCP Tools
 
-### Search for AI news:
-```javascript
-const result = await mcpClient.callTool('search_news', {
-  query: 'artificial intelligence',
-  language: 'en',
-  sortBy: 'publishedAt',
-  pageSize: 15
-});
-```
+| Tool name         | Description                     | Key inputs                           |
+|-------------------|---------------------------------|--------------------------------------|
+| `get_top_headlines` | Top headlines endpoint          | `country`, `category`, `pageSize`, `page` |
+| `search_news`       | Full-text article search        | `query` (required), plus filters     |
+| `get_sources`       | Available NewsAPI sources       | `category`, `language`, `country`    |
 
-### Get available sources:
-```javascript
-const result = await mcpClient.callTool('get_sources', {
-  category: 'technology',
-  language: 'en'
-});
-```
+All tools read the same NewsAPI credentials from `.env`.
 
-## Integration with Cursor
+## Deployment (Vercel)
 
-1. Copy the `cursor-mcp-config.json` to your Cursor configuration directory
-2. Set your `NEWS_API_KEY` environment variable
-3. Restart Cursor to load the MCP server
+1. In Vercel **Project → Settings → General**, set **Root Directory** to `client`.
+2. Build command: `pnpm run build`
+3. Output directory: `dist`
+4. Environment variables (Production, Preview, Development):
+   - `NEWS_API_KEY`
+   - Optional defaults (`DEFAULT_COUNTRY`, etc.) if you override them.
+5. Redeploy. The dashboard will serve from `client/dist`, while the proxy routes live in `client/api/*`:
 
-## Vercel Deployment
+   - `/api/search-news`
+   - `/api/top-headlines`
+   - `/api/get-sources`
 
-The `web/` directory hosts the React dashboard and API routes. Configure Vercel so that it treats `web` as the project root.
-
-### Deploy to Vercel
-
-1. Import the repository into Vercel (or run `vercel` locally).
-2. In **Project → Settings → General → Monorepo**, enable the toggle and set **Root Directory** to `web`.
-3. Build settings (Vercel auto-detects Vite):
-   - Build command: `npm run build`
-   - Output directory: `dist`
-4. Environment variables:
-   - `NEWS_API_KEY` (Production + Preview + Development) → required for the serverless routes under `web/api/*`.
-   - Leave `VITE_NEWS_API_KEY` unset in Production so browsers hit `/api/search-news`. For local dev, keep it in `web/.env`.
-5. Save changes and redeploy the latest build (Deployments → Redeploy) so the new settings take effect.
-
-### API Routes (Vercel Functions)
-
-- `/api/top-headlines`
-- `/api/search-news`
-- `/api/get-sources`
-
-Each route lives in `web/api/` and runs on the Node.js runtime provided by Vercel, forwarding requests to NewsAPI with your key securely injected from the environment.
-
-### Local Vercel Testing
+### Testing Vercel build locally
 
 ```bash
-# Install Vercel CLI (optional)
-npm install -g vercel
-
-# Pull remote environment variables for local simulation
-vercel env pull web/.env.local
-
-# From the repo root
-vercel dev
+pnpm --filter client run build
+pnpm --filter client run preview
 ```
 
-## Error Handling
+Optionally install the Vercel CLI (`npm i -g vercel`) and run `vercel dev` from the repo root after `vercel env pull`.
 
-The server includes comprehensive error handling for:
-- Missing API keys
-- Network errors
-- Invalid parameters
-- API rate limits
+## Troubleshooting
 
-## Development
-
-For development with auto-restart:
-```bash
-npm run dev
-```
+- **Unexpected token `<` / not valid JSON** — usually means the proxy returned HTML. Ensure the Express server is running locally (or serverless functions deployed) and that `NEWS_API_KEY` exists.
+- **401 / 426 errors** — NewsAPI key missing/invalid or free tier limits exceeded.
+- **Local topics not persisting** — check browser storage; clear `localStorage['news_topics']` to reset.
 
 ## Testing
 
-Run tests:
+Jest scripts exist but no suites are configured yet. Add tests in `__tests__/` and run:
+
 ```bash
-npm test
+pnpm test
 ```
 
-## Pre-Push Checklist
+## Pre-push checklist
 
-Before pushing to GitHub, ensure:
-- [ ] No API keys are hardcoded in any files
-- [ ] `.env` file is not tracked by git
-- [ ] All sensitive data uses environment variables
-- [ ] `env.example` file exists with placeholder values 
+- [ ] `.env` or client `.env.*` never staged
+- [ ] `pnpm run build` passes
+- [ ] Vercel root set to `client` (for deployments)
+- [ ] API key stored securely in Vercel / local environment
