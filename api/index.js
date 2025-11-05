@@ -3,10 +3,13 @@ const axios = require("axios");
 const cors = require("cors");
 require("dotenv").config();
 
+const { getSampleArticles } = require("./sampleNewsData");
+
 const app = express();
 const port = process.env.PORT || 3000;
 
 const apiKey = process.env.NEWSAPI_KEY || process.env.NEWS_API_KEY;
+const hasApiKey = Boolean(apiKey);
 const baseUrl = process.env.NEWS_API_BASE_URL || "https://newsapi.org/v2";
 const translationEndpoint =
   "https://translate.googleapis.com/translate_a/single";
@@ -18,7 +21,7 @@ app.use(cors());
 app.use(express.json());
 
 const ensureApiKey = (req, res, next) => {
-  if (!apiKey) {
+  if (!hasApiKey) {
     return res
       .status(500)
       .json({ error: "NEWS_API_KEY is not configured on the server." });
@@ -92,7 +95,7 @@ const translateTextToEnglish = async (text) => {
   }
 };
 
-app.get("/api/news", ensureApiKey, async (req, res) => {
+app.get("/api/news", async (req, res) => {
   const topic =
     typeof req.query.topic === "string" && req.query.topic.trim().length > 0
       ? req.query.topic.trim()
@@ -106,6 +109,11 @@ app.get("/api/news", ensureApiKey, async (req, res) => {
   const originCountry = ["ir", "global", "mixed"].includes(originParam)
     ? originParam
     : "mixed";
+
+  if (!hasApiKey) {
+    const demoArticles = getSampleArticles(originCountry);
+    return res.json(demoArticles);
+  }
 
   try {
     let sourceMetadata = new Map();
