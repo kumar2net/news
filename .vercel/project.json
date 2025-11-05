@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_6pcboSY7sUCY3nlSze7iPWHvVRoW",
+  "orgId": "team_WzZYChiNI74Y6cnX7ngRGlSr",
+  "projectName": "news",
+  "settings": {
+    "createdAt": 1761831792730,
+    "framework": null,
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": null,
+    "outputDirectory": null,
+    "rootDirectory": "client",
+    "directoryListing": false,
+    "nodeVersion": "22.x"
+  }
+}

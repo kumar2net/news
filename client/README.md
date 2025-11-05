@@ -1,73 +1,37 @@
-# React + TypeScript + Vite
+# News Dashboard (Vite + MUI)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This folder hosts the React dashboard that surfaces NewsAPI data via three proxy routes (`client/api/*`). It is deployed independently on Vercel with the same root directory.
 
-Currently, two official plugins are available:
+## Available scripts
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+| Command | Description |
+|---------|-------------|
+| `pnpm run dev` | Start the Vite dev server (loads `.env.local` if present). |
+| `pnpm run build` | Type-check (`tsc -b`) and create a production bundle in `dist/`. |
+| `pnpm run preview` | Serve the production bundle locally. |
 
-## React Compiler
+> The repo root exposes helper scripts: `pnpm run frontend` (calls `pnpm run dev` here) and `pnpm run dev` (runs backend + frontend together).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Environment variables
 
-## Expanding the ESLint configuration
+The dashboard reads the same `.env` values as the MCP server through the proxy routes. If you want the browser to talk to NewsAPI directly during dev, add the following to `client/.env.local`:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```ini
+VITE_NEWS_API_KEY=your_news_api_key
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+When unset, requests fall back to `/api/search-news`, `/api/top-headlines`, and `/api/get-sources`, which are implemented as Vercel serverless functions (and the local Express proxy during `pnpm run dev`).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Build & deployment
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Ensure `NEWS_API_KEY` (and optional defaults) are configured in Vercel → Project Settings → Environment Variables.
+2. Build command: `pnpm run build`
+3. Output directory: `dist`
+4. Serverless functions live alongside the source:
+   - `api/search-news.js`
+   - `api/top-headlines.js`
+   - `api/get-sources.js`
+
+## Linting & formatting
+
+ESLint is configured via `eslint.config.js`. Run `pnpm run lint` (or use your editor’s ESLint integration) before committing large UI changes.
