@@ -1,6 +1,8 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const fs = require("node:fs");
+const path = require("node:path");
 require("dotenv").config();
 
 const { getSampleArticles } = require("./sampleNewsData");
@@ -8,6 +10,8 @@ const { getSampleSources } = require("./sampleSourcesData");
 
 const app = express();
 const port = process.env.PORT || 3000;
+const publicDir = path.join(__dirname, "..", "public");
+const hasBuiltClient = fs.existsSync(path.join(publicDir, "index.html"));
 
 const apiKey = process.env.NEWSAPI_KEY || process.env.NEWS_API_KEY;
 const hasApiKey = Boolean(apiKey);
@@ -309,8 +313,37 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+if (hasBuiltClient) {
+  app.use(express.static(publicDir));
+
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) {
+      return next();
+    }
+
+    if (req.method !== "GET") {
+      return next();
+    }
+
+    if (path.extname(req.path)) {
+      return next();
+    }
+
+    const accepts = req.headers.accept || "";
+    if (!accepts.includes("text/html")) {
+      return next();
+    }
+
+    return res.sendFile(path.join(publicDir, "index.html"));
+  });
+}
+
 app.use((req, res) => {
-  res.status(404).json({ error: "Not found" });
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  return res.status(404).send("Not found");
 });
 
 app.listen(port, () => {
