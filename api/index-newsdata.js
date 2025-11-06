@@ -31,6 +31,24 @@ const defaultNewsProvider = process.env.DEFAULT_NEWS_PROVIDER || "newsapi"; // '
 const PERSIAN_CHAR_PATTERN = /[\u0600-\u06FF]/;
 const translationCache = new Map();
 
+// Simple in-memory cache for sources to reduce upstream rate-limit hits
+const sourcesCache = new Map(); // key -> { data, cachedAt }
+const SOURCES_TTL_MS = 1000 * 60 * 60 * 6; // 6 hours
+
+const getCachedSources = (key) => {
+  const entry = sourcesCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > SOURCES_TTL_MS) {
+    sourcesCache.delete(key);
+    return null;
+  }
+  return entry.data;
+};
+
+const setCachedSources = (key, data) => {
+  sourcesCache.set(key, { data, cachedAt: Date.now() });
+};
+
 app.use(cors());
 app.use(express.json());
 
@@ -359,37 +377,69 @@ app.get("/api/get-sources", async (req, res) => {
       ? req.query.country.trim().toLowerCase()
       : process.env.DEFAULT_COUNTRY || "us";
 
+  // If no upstream keys at all, return samples
   if (!hasNewsApiKey && !hasNewsDataKey) {
     const samples = getSampleSources(countryParam);
     return res.json({ sources: samples });
   }
 
+  // Build a cache key based on filters
+  const requestedLanguage =
+    typeof req.query.language === "string" ? req.query.language.trim() : "";
+  const normalizedLanguage =
+    requestedLanguage && requestedLanguage.toLowerCase() !== "all"
+      ? requestedLanguage
+      : ""; // empty means "all"
+  const categoryParam = typeof req.query.category === "string" ? req.query.category.trim() : "";
+  const cacheKey = `sources|country=${countryParam}|lang=${normalizedLanguage}|cat=${categoryParam}`;
+
+  // Serve from cache if available
+  const cached = getCachedSources(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
   try {
-    // Try NewsAPI sources endpoint
+    // For now, NewsAPI is the only upstream for sources in this server
     if (hasNewsApiKey) {
       const params = {
         apiKey: newsApiKey,
-        category: req.query.category,
+        category: categoryParam || undefined,
         country: countryParam,
       };
 
-      const requestedLanguage =
-        typeof req.query.language === "string" ? req.query.language.trim() : "";
-
-      if (requestedLanguage && requestedLanguage.toLowerCase() !== "all") {
-        params.language = requestedLanguage;
+      if (normalizedLanguage) {
+        params.language = normalizedLanguage;
       }
 
-      const response = await axios.get(`${newsApiBaseUrl}/sources`, {
-        params,
-      });
-      res.json(response.data);
-    } else {
-      res.status(503).json({ error: "Sources API not available" });
+      const response = await axios.get(`${newsApiBaseUrl}/sources`, { params });
+      const payload = response.data;
+      // Cache successful responses to avoid repeated upstream calls
+      if (payload && Array.isArray(payload.sources)) {
+        setCachedSources(cacheKey, payload);
+      }
+      return res.json(payload);
     }
+
+    // If NewsAPI key is missing but NewsData key exists, respond with a helpful message
+    return res.status(503).json({ error: "Sources API not available for current provider" });
   } catch (error) {
     const status = error.response?.status || 500;
-    res.status(status).json({
+    // Forward rate-limit hints if present
+    const retryAfter = error.response?.headers?.["retry-after"];
+    if (retryAfter) {
+      res.set("Retry-After", String(retryAfter));
+    }
+
+    // For 429, return a friendlier error message
+    if (status === 429) {
+      return res.status(429).json({
+        error: "Rate limit exceeded",
+        details: "The upstream NewsAPI /sources endpoint returned 429 (Too Many Requests). Please wait and try again, or reduce request frequency.",
+      });
+    }
+
+    return res.status(status).json({
       error: "Failed to fetch sources",
       details: error.response?.data || error.message,
     });
