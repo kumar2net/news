@@ -57,15 +57,64 @@ interface Source {
   country?: string | null;
 }
 
-const resolveSources = (payload: unknown) => {
+const resolveSources = (payload: unknown): unknown[] => {
   if (
     payload &&
     typeof payload === "object" &&
     Array.isArray((payload as { sources?: unknown }).sources)
   ) {
-    return (payload as { sources: Source[] }).sources;
+    return (payload as { sources: unknown[] }).sources;
   }
-  return Array.isArray(payload) ? (payload as Source[]) : [];
+  return Array.isArray(payload) ? payload : [];
+};
+
+const toDisplayString = (value: unknown) => {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return "";
+};
+
+const toOptionalDisplayString = (value: unknown) => {
+  const text = toDisplayString(value).trim();
+  return text.length ? text : null;
+};
+
+const sanitizeSource = (source: unknown, index: number): Source | null => {
+  if (!source || typeof source !== "object") {
+    return null;
+  }
+
+  const record = source as Partial<Source> & { _id?: unknown };
+
+  const id =
+    toOptionalDisplayString(record.id) ||
+    toOptionalDisplayString(record._id) ||
+    `source-${index}`;
+  const name = toOptionalDisplayString(record.name);
+  const url = toOptionalDisplayString(record.url);
+
+  if (!name || !url) {
+    return null;
+  }
+
+  const description = toOptionalDisplayString(record.description);
+  const category = toOptionalDisplayString(record.category);
+  const language = toOptionalDisplayString(record.language)?.toLowerCase() ?? null;
+  const country = toOptionalDisplayString(record.country)?.toLowerCase() ?? null;
+
+  return {
+    id,
+    name,
+    description,
+    url,
+    category,
+    language,
+    country,
+  } satisfies Source;
 };
 
 interface TranslationState {
@@ -91,6 +140,7 @@ export default function NewsSources() {
   const [translations, setTranslations] = React.useState<
     Record<string, TranslationState>
   >({});
+  const [, startSourcesTransition] = React.useTransition();
 
   const loadSources = React.useCallback(
     async (countryCode: string, languageCode: string, controller: AbortController) => {
@@ -106,18 +156,32 @@ export default function NewsSources() {
           signal: controller.signal,
         });
 
-        const resolved = resolveSources(response.data);
-        setSources(resolved);
-        setTranslations({});
-        setStatus("success");
+        const resolved = resolveSources(response.data).reduce<Source[]>(
+          (acc, source, index) => {
+            const sanitized = sanitizeSource(source, index);
+            if (sanitized) {
+              acc.push(sanitized);
+            }
+            return acc;
+          },
+          [],
+        );
+
+        startSourcesTransition(() => {
+          setSources(resolved);
+          setTranslations({});
+          setStatus("success");
+        });
       } catch (err) {
         if (controller.signal.aborted) {
           return;
         }
-        setStatus("error");
-        setError(
-          (err as Error)?.message || "Unable to fetch publishers right now.",
-        );
+        startSourcesTransition(() => {
+          setStatus("error");
+          setError(
+            (err as Error)?.message || "Unable to fetch publishers right now.",
+          );
+        });
       }
     },
     [],

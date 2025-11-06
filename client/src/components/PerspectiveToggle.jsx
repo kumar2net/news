@@ -7,7 +7,7 @@ const OPTIONS = [
   { value: "mixed", label: "Mixed", emoji: "⚖️" },
 ];
 
-export default function PerspectiveToggle({ value = "mixed", onChange }) {
+export default function PerspectiveToggle({ value = "mixed", onChange, disabled = false }) {
   const handleSelect = (optionValue) => {
     if (optionValue === value) return;
     onChange?.(optionValue);
@@ -24,6 +24,7 @@ export default function PerspectiveToggle({ value = "mixed", onChange }) {
             onClick={() => handleSelect(option.value)}
             color={selected ? "primary" : "default"}
             variant={selected ? "filled" : "outlined"}
+            disabled={disabled}
             sx={{
               fontWeight: selected ? 600 : 500,
               px: 1.5,

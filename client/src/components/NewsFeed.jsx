@@ -17,6 +17,82 @@ import {
 import Grid from "@mui/material/Grid";
 import PerspectiveToggle from "./PerspectiveToggle";
 
+const toDisplayString = (value) => {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return "";
+};
+
+const toOptionalDisplayString = (value) => {
+  const text = toDisplayString(value).trim();
+  return text.length ? text : null;
+};
+
+const sanitizeTranslations = (translations) => {
+  if (!translations || typeof translations !== "object") {
+    return undefined;
+  }
+
+  const en = translations.en;
+  if (!en || typeof en !== "object") {
+    return undefined;
+  }
+
+  const title = toOptionalDisplayString(en.title);
+  const description = toOptionalDisplayString(en.description);
+
+  if (!title && !description) {
+    return undefined;
+  }
+
+  return {
+    en: {
+      ...(title ? { title } : {}),
+      ...(description ? { description } : {}),
+    },
+  };
+};
+
+const sanitizeArticle = (article) => {
+  if (!article || typeof article !== "object") {
+    return null;
+  }
+
+  const title = toOptionalDisplayString(article.title);
+  const url = toOptionalDisplayString(article.url);
+
+  if (!title || !url) {
+    return null;
+  }
+
+  const description = toOptionalDisplayString(article.description);
+  const sourceName = toOptionalDisplayString(article.source?.name);
+
+  const countryCode = toOptionalDisplayString(article.country)?.toLowerCase() ?? null;
+  const originTag = toOptionalDisplayString(article.origin)?.toLowerCase() ?? null;
+
+  const normalizedOrigin =
+    originTag === "ir" || originTag === "global" ? originTag : null;
+
+  const translations = sanitizeTranslations(article.translations);
+
+  return {
+    title,
+    description,
+    url,
+    source: { name: sourceName || "Unknown source" },
+    country: countryCode,
+    origin: normalizedOrigin,
+    ...(translations ? { translations } : {}),
+  };
+};
+
 const normalizeErrorMessage = (value) => {
   if (!value) return "";
 
@@ -74,7 +150,8 @@ export default function NewsFeed() {
   const [articles, setArticles] = React.useState([]);
   const [status, setStatus] = React.useState("loading");
   const [error, setError] = React.useState(null);
-  const [, startTransition] = React.useTransition();
+  const [, startArticlesTransition] = React.useTransition();
+  const [, startPerspectiveTransition] = React.useTransition();
 
   const loadArticles = React.useCallback(async (origin, controller) => {
     setStatus("loading");
@@ -89,8 +166,11 @@ export default function NewsFeed() {
         signal: controller.signal,
       });
 
-      const resolved = resolveArticles(response.data);
-      startTransition(() => {
+      const resolved = resolveArticles(response.data)
+        .map(sanitizeArticle)
+        .filter(Boolean);
+
+      startArticlesTransition(() => {
         setArticles(resolved);
         setStatus("success");
       });
@@ -105,7 +185,7 @@ export default function NewsFeed() {
         normalizeErrorMessage(err?.message) ||
         "Unable to load political coverage.";
 
-      startTransition(() => {
+      startArticlesTransition(() => {
         setError(normalizedMessage);
         setStatus("error");
       });
@@ -120,7 +200,10 @@ export default function NewsFeed() {
   }, [originCountry, loadArticles]);
 
   const handlePerspectiveChange = (value) => {
-    setOriginCountry(value);
+    if (value === originCountry) return;
+    startPerspectiveTransition(() => {
+      setOriginCountry(value);
+    });
   };
 
   const renderContent = () => {
@@ -304,7 +387,11 @@ export default function NewsFeed() {
           </Typography>
         </Stack>
 
-        <PerspectiveToggle value={originCountry} onChange={handlePerspectiveChange} />
+        <PerspectiveToggle
+          value={originCountry}
+          onChange={handlePerspectiveChange}
+          disabled={status === "loading"}
+        />
 
         <Divider />
 
