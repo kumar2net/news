@@ -17,6 +17,35 @@ import {
 import Grid from "@mui/material/Grid";
 import PerspectiveToggle from "./PerspectiveToggle";
 
+const normalizeErrorMessage = (value) => {
+  if (!value) return "";
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (value && typeof value === "object") {
+    if (typeof value.message === "string" && value.message.length) {
+      if (typeof value.code === "string" && value.code.length) {
+        return `${value.code.toUpperCase()}: ${value.message}`;
+      }
+      return value.message;
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      return "An unexpected error occurred.";
+    }
+  }
+
+  try {
+    return String(value);
+  } catch (error) {
+    return "An unexpected error occurred.";
+  }
+};
+
 const ORIGIN_META = {
   ir: { label: "IR", color: "secondary" },
   global: { label: "Global", color: "default" },
@@ -45,6 +74,7 @@ export default function NewsFeed() {
   const [articles, setArticles] = React.useState([]);
   const [status, setStatus] = React.useState("loading");
   const [error, setError] = React.useState(null);
+  const [, startTransition] = React.useTransition();
 
   const loadArticles = React.useCallback(async (origin, controller) => {
     setStatus("loading");
@@ -60,19 +90,25 @@ export default function NewsFeed() {
       });
 
       const resolved = resolveArticles(response.data);
-      setArticles(resolved);
-      setStatus("success");
+      startTransition(() => {
+        setArticles(resolved);
+        setStatus("success");
+      });
     } catch (err) {
       if (controller.signal.aborted) {
         return;
       }
 
-      const message =
-        err?.response?.data?.error ||
-        err?.message ||
+      const responseError = err?.response?.data?.error;
+      const normalizedMessage =
+        normalizeErrorMessage(responseError) ||
+        normalizeErrorMessage(err?.message) ||
         "Unable to load political coverage.";
-      setError(message);
-      setStatus("error");
+
+      startTransition(() => {
+        setError(normalizedMessage);
+        setStatus("error");
+      });
     }
   }, []);
 
@@ -102,7 +138,7 @@ export default function NewsFeed() {
     if (status === "error") {
       return (
         <Alert severity="error" sx={{ borderRadius: 3 }}>
-          {error || "Something went wrong."}
+          {(typeof error === "string" && error) || "Something went wrong."}
         </Alert>
       );
     }
