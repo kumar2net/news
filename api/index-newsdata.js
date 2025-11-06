@@ -428,9 +428,15 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-app.listen(port, () => {
-  console.log(`API server listening on http://localhost:${port}`);
-  console.log(`NewsAPI: ${hasNewsApiKey ? "✓" : "✗"}`);
-  console.log(`NewsData.io: ${hasNewsDataKey ? "✓" : "✗"}`);
-  console.log(`Default provider: ${defaultNewsProvider}`);
-});
+// For local development
+if (process.env.NODE_ENV !== "production") {
+  app.listen(port, () => {
+    console.log(`API server listening on http://localhost:${port}`);
+    console.log(`NewsAPI: ${hasNewsApiKey ? "✓" : "✗"}`);
+    console.log(`NewsData.io: ${hasNewsDataKey ? "✓" : "✗"}`);
+    console.log(`Default provider: ${defaultNewsProvider}`);
+  });
+}
+
+// Export for Vercel serverless
+module.exports = app;
