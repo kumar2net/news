@@ -182,14 +182,63 @@ app.get("/api/news", async (req, res) => {
         params.category = category;
       }
 
-      const result = await client.fetchLatestNews(params);
-      allArticles = result.articles;
+      try {
+        const result = await client.fetchLatestNews(params);
+        allArticles = result.articles;
 
-      // Add metadata for client
-      res.set("X-News-Provider", "newsdata");
-      res.set("X-Total-Results", result.totalResults);
-      if (result.nextPage) {
-        res.set("X-Next-Page", result.nextPage);
+        // Add metadata for client
+        res.set("X-News-Provider", "newsdata");
+        res.set("X-Total-Results", result.totalResults);
+        if (result.nextPage) {
+          res.set("X-Next-Page", result.nextPage);
+        }
+      } catch (err) {
+        const status = err.response?.status;
+        // If NewsData.io is rate limited, transparently fall back to NewsAPI when available
+        if (status === 429 && hasNewsApiKey) {
+          console.warn("NewsData.io returned 429; falling back to NewsAPI");
+          res.set("X-News-Fallback", "newsapi");
+          // Execute the same NewsAPI logic as below (duplicated locally to keep flow simple)
+          res.set("X-News-Provider", "newsapi");
+          if (countryParam === "all") {
+            const topCountries = ["us", "gb", "in", "au", "ca"];
+            const promises = topCountries.map(async (country) => {
+              try {
+                const response = await axios.get(`${newsApiBaseUrl}/top-headlines`, {
+                  params: {
+                    apiKey: newsApiKey,
+                    country,
+                    category,
+                    pageSize: Math.ceil(pageSize / topCountries.length),
+                  },
+                });
+                const articles = Array.isArray(response.data?.articles)
+                  ? response.data.articles
+                  : [];
+                return articles.map((article) => ({ ...article, country }));
+              } catch (e) {
+                console.warn(`Failed to fetch news for ${country}:`, e.message);
+                return [];
+              }
+            });
+            const results = await Promise.all(promises);
+            allArticles = results.flat();
+          } else {
+            const response = await axios.get(`${newsApiBaseUrl}/top-headlines`, {
+              params: {
+                apiKey: newsApiKey,
+                country: countryParam,
+                category,
+                pageSize,
+              },
+            });
+            allArticles = Array.isArray(response.data?.articles)
+              ? response.data.articles.map((article) => ({ ...article, country: countryParam }))
+              : [];
+          }
+        } else {
+          throw err;
+        }
       }
     } 
     // Fallback to NewsAPI
@@ -197,44 +246,74 @@ app.get("/api/news", async (req, res) => {
       console.log("Using NewsAPI");
       res.set("X-News-Provider", "newsapi");
 
-      if (countryParam === "all") {
-        // For "all", fetch from multiple countries
-        const topCountries = ["us", "gb", "in", "au", "ca"];
-        const promises = topCountries.map(async (country) => {
-          try {
-            const response = await axios.get(`${newsApiBaseUrl}/top-headlines`, {
-              params: {
-                apiKey: newsApiKey,
-                country,
-                category,
-                pageSize: Math.ceil(pageSize / topCountries.length),
-              },
-            });
-            const articles = Array.isArray(response.data?.articles)
-              ? response.data.articles
-              : [];
-            return articles.map((article) => ({ ...article, country }));
-          } catch (err) {
-            console.warn(`Failed to fetch news for ${country}:`, err.message);
-            return [];
-          }
-        });
+      try {
+        if (countryParam === "all") {
+          // For "all", fetch from multiple countries
+          const topCountries = ["us", "gb", "in", "au", "ca"];
+          const promises = topCountries.map(async (country) => {
+            try {
+              const response = await axios.get(`${newsApiBaseUrl}/top-headlines`, {
+                params: {
+                  apiKey: newsApiKey,
+                  country,
+                  category,
+                  pageSize: Math.ceil(pageSize / topCountries.length),
+                },
+              });
+              const articles = Array.isArray(response.data?.articles)
+                ? response.data.articles
+                : [];
+              return articles.map((article) => ({ ...article, country }));
+            } catch (err) {
+              console.warn(`Failed to fetch news for ${country}:`, err.message);
+              return [];
+            }
+          });
 
-        const results = await Promise.all(promises);
-        allArticles = results.flat();
-      } else {
-        // For specific country, use top-headlines endpoint
-        const response = await axios.get(`${newsApiBaseUrl}/top-headlines`, {
-          params: {
-            apiKey: newsApiKey,
-            country: countryParam,
-            category,
-            pageSize,
-          },
-        });
-        allArticles = Array.isArray(response.data?.articles)
-          ? response.data.articles.map((article) => ({ ...article, country: countryParam }))
-          : [];
+          const results = await Promise.all(promises);
+          allArticles = results.flat();
+        } else {
+          // For specific country, use top-headlines endpoint
+          const response = await axios.get(`${newsApiBaseUrl}/top-headlines`, {
+            params: {
+              apiKey: newsApiKey,
+              country: countryParam,
+              category,
+              pageSize,
+            },
+          });
+          allArticles = Array.isArray(response.data?.articles)
+            ? response.data.articles.map((article) => ({ ...article, country: countryParam }))
+            : [];
+        }
+      } catch (err) {
+        const status = err.response?.status;
+        if (status === 429 && hasNewsDataKey) {
+          console.warn("NewsAPI returned 429; falling back to NewsData.io");
+          res.set("X-News-Fallback", "newsdata");
+          const client = getNewsDataClient(newsDataApiKey);
+          const params = {
+            size: Math.min(pageSize, 10),
+          };
+          if (countryParam && countryParam !== "all" && countryParam !== "undefined") {
+            params.country = countryParam;
+          }
+          if (languageParam && languageParam !== "undefined") {
+            params.language = languageParam;
+          }
+          if (category && category !== "undefined") {
+            params.category = category;
+          }
+          const result = await client.fetchLatestNews(params);
+          allArticles = result.articles;
+          res.set("X-News-Provider", "newsdata");
+          res.set("X-Total-Results", result.totalResults);
+          if (result.nextPage) {
+            res.set("X-Next-Page", result.nextPage);
+          }
+        } else {
+          throw err;
+        }
       }
     } else {
       return res.status(503).json({
@@ -303,34 +382,88 @@ app.get("/api/search-news", ensureApiKey, async (req, res) => {
         params.category = req.query.category;
       }
 
-      const result = await client.fetchNews(params);
-      
-      res.set("X-News-Provider", "newsdata");
-      res.json({
-        status: "ok",
-        totalResults: result.totalResults,
-        articles: result.articles,
-        nextPage: result.nextPage,
-      });
+      try {
+        const result = await client.fetchNews(params);
+        res.set("X-News-Provider", "newsdata");
+        res.json({
+          status: "ok",
+          totalResults: result.totalResults,
+          articles: result.articles,
+          nextPage: result.nextPage,
+        });
+      } catch (err) {
+        const status = err.response?.status;
+        if (status === 429 && hasNewsApiKey) {
+          console.warn("NewsData.io search returned 429; falling back to NewsAPI");
+          res.set("X-News-Fallback", "newsapi");
+          const response = await axios.get(`${newsApiBaseUrl}/everything`, {
+            params: {
+              apiKey: newsApiKey,
+              q: req.query.q,
+              language: req.query.language || process.env.DEFAULT_LANGUAGE || "en",
+              sortBy: req.query.sortBy || "publishedAt",
+              pageSize: req.query.pageSize || process.env.DEFAULT_PAGE_SIZE || 20,
+              page: req.query.page || 1,
+              from: req.query.from,
+              to: req.query.to,
+            },
+          });
+          res.set("X-News-Provider", "newsapi");
+          res.json(response.data);
+        } else {
+          throw err;
+        }
+      }
     }
     // Fallback to NewsAPI
     else if (hasNewsApiKey) {
       console.log("Searching with NewsAPI");
-      const response = await axios.get(`${newsApiBaseUrl}/everything`, {
-        params: {
-          apiKey: newsApiKey,
-          q: req.query.q,
-          language: req.query.language || process.env.DEFAULT_LANGUAGE || "en",
-          sortBy: req.query.sortBy || "publishedAt",
-          pageSize: req.query.pageSize || process.env.DEFAULT_PAGE_SIZE || 20,
-          page: req.query.page || 1,
-          from: req.query.from,
-          to: req.query.to,
-        },
-      });
-      
-      res.set("X-News-Provider", "newsapi");
-      res.json(response.data);
+      try {
+        const response = await axios.get(`${newsApiBaseUrl}/everything`, {
+          params: {
+            apiKey: newsApiKey,
+            q: req.query.q,
+            language: req.query.language || process.env.DEFAULT_LANGUAGE || "en",
+            sortBy: req.query.sortBy || "publishedAt",
+            pageSize: req.query.pageSize || process.env.DEFAULT_PAGE_SIZE || 20,
+            page: req.query.page || 1,
+            from: req.query.from,
+            to: req.query.to,
+          },
+        });
+        res.set("X-News-Provider", "newsapi");
+        res.json(response.data);
+      } catch (err) {
+        const status = err.response?.status;
+        if (status === 429 && hasNewsDataKey) {
+          console.warn("NewsAPI search returned 429; falling back to NewsData.io");
+          res.set("X-News-Fallback", "newsdata");
+          const client = getNewsDataClient(newsDataApiKey);
+          const params = {
+            q: req.query.q,
+            size: Math.min(Number(req.query.pageSize) || 20, 10),
+          };
+          if (req.query.language && req.query.language !== "undefined" && req.query.language !== "all") {
+            params.language = req.query.language;
+          }
+          if (req.query.country && req.query.country !== "undefined" && req.query.country !== "all") {
+            params.country = req.query.country;
+          }
+          if (req.query.category && req.query.category !== "undefined") {
+            params.category = req.query.category;
+          }
+          const result = await client.fetchNews(params);
+          res.set("X-News-Provider", "newsdata");
+          res.json({
+            status: "ok",
+            totalResults: result.totalResults,
+            articles: result.articles,
+            nextPage: result.nextPage,
+          });
+        } else {
+          throw err;
+        }
+      }
     } else {
       res.status(503).json({
         error: "No search API available",
