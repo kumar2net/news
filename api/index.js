@@ -347,10 +347,13 @@ app.use((req, res) => {
   return res.status(404).send("Not found");
 });
 
+const handler = (req, res) => app(req, res);
+
 if (!isServerless) {
   app.listen(port, () => {
     console.log(`API server listening on http://localhost:${port}`);
   });
 }
 
-module.exports = app;
+module.exports = handler;
+module.exports.app = app;

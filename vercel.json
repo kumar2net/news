@@ -7,14 +7,14 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/index-newsdata.js"
+      "dest": "/api/index-newsdata"
     },
     {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/api/index-newsdata.js"
+      "dest": "/api/index-newsdata"
     }
   ]
 }

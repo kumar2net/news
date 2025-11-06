@@ -463,6 +463,8 @@ app.use((req, res) => {
 });
 
 // For local development
+const handler = (req, res) => app(req, res);
+
 if (!isServerless) {
   app.listen(port, () => {
     console.log(`API server listening on http://localhost:${port}`);
@@ -473,4 +475,5 @@ if (!isServerless) {
 }
 
 // Export for Vercel serverless
-module.exports = app;
+module.exports = handler;
+module.exports.app = app;
