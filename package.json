@@ -4,11 +4,15 @@
   "description": "MCP server for NewsAPI integration",
   "main": "src/server.js",
   "scripts": {
-    "start": "node api/index.js",
+    "start": "node api/index-newsdata.js",
+    "start:legacy": "node api/index.js",
     "mcp": "node src/server.js",
-    "backend": "nodemon api/index.js",
+    "backend": "nodemon api/index-newsdata.js",
     "frontend": "cd client && pnpm run dev",
-    "dev": "concurrently \"pnpm:backend\" \"pnpm:frontend\""
+    "dev": "concurrently \"pnpm:backend\" \"pnpm:frontend\"",
+    "build": "cd client && npm run build && cd .. && rm -rf public && cp -r client/dist public",
+    "test:newsdata": "node test-newsdata.js",
+    "compare": "node compare-apis.js"
   },
   "keywords": [
     "mcp",
