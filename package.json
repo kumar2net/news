@@ -10,6 +10,7 @@
     "backend": "nodemon api/index-newsdata.js",
     "frontend": "cd client && pnpm run dev",
     "dev": "concurrently \"pnpm:backend\" \"pnpm:frontend\"",
+    "build": "cd client && npm install && npm run build",
     "test:newsdata": "node test-newsdata.js",
     "compare": "node compare-apis.js"
   },
