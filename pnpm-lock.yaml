@@ -40,7 +40,7 @@ importers:
         version: 7.9.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
     devDependencies:
       concurrently:
-        specifier: ^9.0.0
+        specifier: ^9.2.1
         version: 9.2.1
       jest:
         specifier: ^29.7.0
