@@ -1,4 +1,12 @@
 {
+  "rewrites": [
+    { "source": "/api/news", "destination": "/api/index-newsdata" },
+    { "source": "/api/search-news", "destination": "/api/index-newsdata" },
+    { "source": "/api/top-headlines", "destination": "/api/index-newsdata" },
+    { "source": "/api/get-sources", "destination": "/api/index-newsdata" },
+    { "source": "/api/translate", "destination": "/api/index-newsdata" },
+    { "source": "/api/health", "destination": "/api/index-newsdata" }
+  ],
   "github": {
     "silent": true
   }
