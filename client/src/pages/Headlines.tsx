@@ -16,7 +16,7 @@ export default function Headlines() {
       >
         <Stack spacing={2} maxWidth={600}>
           <Chip
-            label="Daily pulse"
+            label="Global News"
             color="primary"
             variant="outlined"
             sx={{ alignSelf: "flex-start", fontWeight: 600 }}
@@ -26,11 +26,12 @@ export default function Headlines() {
             fontWeight={800}
             sx={{ letterSpacing: "-0.02em" }}
           >
-            Politics headlines for a millennial mindset
+            Political headlines from around the world
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Track domestic and global narratives around Iran in seconds. Dial in
-            the perspective that matters with a tap.
+            Browse top headlines from 50+ countries around the world.
+            Note: Most sources are in English due to API limitations.
+            Translate any article with one tap.
           </Typography>
         </Stack>
       </Box>

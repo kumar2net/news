@@ -10,12 +10,15 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  IconButton,
   Link as MuiLink,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import PerspectiveToggle from "./PerspectiveToggle";
+import TranslateIcon from "@mui/icons-material/GTranslate";
+import CountrySelector from "./CountrySelector";
 
 const toDisplayString = (value) => {
   if (typeof value === "string") {
@@ -73,14 +76,7 @@ const sanitizeArticle = (article) => {
 
   const description = toOptionalDisplayString(article.description);
   const sourceName = toOptionalDisplayString(article.source?.name);
-
   const countryCode = toOptionalDisplayString(article.country)?.toLowerCase() ?? null;
-  const originTag = toOptionalDisplayString(article.origin)?.toLowerCase() ?? null;
-
-  const normalizedOrigin =
-    originTag === "ir" || originTag === "global" ? originTag : null;
-
-  const translations = sanitizeTranslations(article.translations);
 
   return {
     title,
@@ -88,8 +84,6 @@ const sanitizeArticle = (article) => {
     url,
     source: { name: sourceName || "Unknown source" },
     country: countryCode,
-    origin: normalizedOrigin,
-    ...(translations ? { translations } : {}),
   };
 };
 
@@ -122,21 +116,10 @@ const normalizeErrorMessage = (value) => {
   }
 };
 
-const ORIGIN_META = {
-  ir: { label: "IR", color: "secondary" },
-  global: { label: "Global", color: "default" },
-};
-
-const emptyStateCopy = {
-  ir: "No domestic stories were returned.",
-  global: "No international stories were returned.",
-  mixed: "No political stories were found right now.",
-};
-
 const statusCopy = {
-  heading: "Origin pulse",
+  heading: "Country Selection",
   description:
-    "Jump between domestic, global, or mixed voices to feel the geopolitical temperature in seconds.",
+    "Browse top headlines from around the world. Select a country to see news from that region, or view all countries together. Note: Most sources are in English.",
 };
 
 const resolveArticles = (payload) => {
@@ -146,22 +129,22 @@ const resolveArticles = (payload) => {
 };
 
 export default function NewsFeed() {
-  const [originCountry, setOriginCountry] = React.useState("mixed");
+  const [country, setCountry] = React.useState("all");
   const [articles, setArticles] = React.useState([]);
   const [status, setStatus] = React.useState("loading");
   const [error, setError] = React.useState(null);
+  const [translations, setTranslations] = React.useState({});
   const [, startArticlesTransition] = React.useTransition();
-  const [, startPerspectiveTransition] = React.useTransition();
+  const [, startCountryTransition] = React.useTransition();
 
-  const loadArticles = React.useCallback(async (origin, controller) => {
+  const loadArticles = React.useCallback(async (countryCode, controller) => {
     setStatus("loading");
     setError(null);
 
     try {
       const response = await axios.get("/api/news", {
         params: {
-          topic: "politics",
-          originCountry: origin,
+          country: countryCode,
         },
         signal: controller.signal,
       });
@@ -194,16 +177,54 @@ export default function NewsFeed() {
 
   React.useEffect(() => {
     const controller = new AbortController();
-    loadArticles(originCountry, controller);
+    loadArticles(country, controller);
 
     return () => controller.abort();
-  }, [originCountry, loadArticles]);
+  }, [country, loadArticles]);
 
-  const handlePerspectiveChange = (value) => {
-    if (value === originCountry) return;
-    startPerspectiveTransition(() => {
-      setOriginCountry(value);
+  const handleCountryChange = (value) => {
+    if (value === country) return;
+    startCountryTransition(() => {
+      setCountry(value);
+      setTranslations({});
     });
+  };
+
+  const handleTranslate = async (article) => {
+    const key = article.url;
+    setTranslations((current) => ({
+      ...current,
+      [key]: { status: "loading", title: null, description: null },
+    }));
+
+    try {
+      const textsToTranslate = [article.title];
+      if (article.description) {
+        textsToTranslate.push(article.description);
+      }
+
+      const response = await axios.post("/api/translate", {
+        texts: textsToTranslate,
+      });
+
+      const translated = response.data?.translations || [];
+      setTranslations((current) => ({
+        ...current,
+        [key]: {
+          status: "success",
+          title: translated[0] || article.title,
+          description: translated[1] || article.description,
+        },
+      }));
+    } catch (err) {
+      setTranslations((current) => ({
+        ...current,
+        [key]: {
+          status: "error",
+          error: "Translation failed",
+        },
+      }));
+    }
   };
 
   const renderContent = () => {
@@ -234,10 +255,10 @@ export default function NewsFeed() {
           sx={{ py: 6, color: "text.secondary", textAlign: "center" }}
         >
           <Typography variant="subtitle1" fontWeight={600}>
-            Nothing to share yet
+            No articles found
           </Typography>
           <Typography variant="body2">
-            {emptyStateCopy[originCountry]}
+            No political stories were found for the selected country.
           </Typography>
         </Stack>
       );
@@ -246,23 +267,14 @@ export default function NewsFeed() {
     return (
       <Grid container spacing={3}>
         {articles.map((article) => {
-          const originTag = article.origin ?? null;
-          const chipConfig = originTag
-            ? {
-                ...ORIGIN_META[originTag],
-                label:
-                  originTag === "ir"
-                    ? "IR"
-                    : (article.country || "Global").toUpperCase(),
-              }
-            : null;
-          const englishTranslations = article.translations?.en ?? null;
-          const translatedTitle = englishTranslations?.title;
-          const translatedDescription = englishTranslations?.description;
-          const showTranslation =
+          const countryLabel = article.country ? article.country.toUpperCase() : "Unknown";
+          const translationState = translations[article.url] || {};
+          const showTranslation = translationState.status === "success";
+          const translatedTitle = translationState.title;
+          const translatedDescription = translationState.description;
+          const hasTranslation =
             (translatedTitle && translatedTitle !== article.title) ||
-            (translatedDescription &&
-              translatedDescription !== article.description);
+            (translatedDescription && translatedDescription !== article.description);
 
           return (
             <Grid key={article.url} size={{ xs: 12, md: 6 }}>
@@ -278,13 +290,25 @@ export default function NewsFeed() {
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Stack spacing={2}>
                     <Stack spacing={1}>
-                      <Typography
-                        variant="overline"
-                        color="text.secondary"
-                        sx={{ letterSpacing: 0.6 }}
-                      >
-                        {article.source?.name || "Unknown source"}
-                      </Typography>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography
+                          variant="overline"
+                          color="text.secondary"
+                          sx={{ letterSpacing: 0.6 }}
+                        >
+                          {article.source?.name || "Unknown source"}
+                        </Typography>
+                        <Tooltip title="Translate to English">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleTranslate(article)}
+                            disabled={translationState.status === "loading"}
+                            color={showTranslation ? "primary" : "default"}
+                          >
+                            <TranslateIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
                       <Typography variant="h6" component="h3">
                         {article.title}
                       </Typography>
@@ -295,35 +319,34 @@ export default function NewsFeed() {
                         {article.description}
                       </Typography>
                     )}
-                    {showTranslation && (
-                      <Stack spacing={0.25}>
+
+                    {showTranslation && hasTranslation && (
+                      <Stack spacing={0.5}>
+                        <Divider flexItem sx={{ borderStyle: "dashed" }} />
                         <Typography
                           variant="caption"
-                          color="text.secondary"
-                          sx={{ letterSpacing: 0.4 }}
+                          color="primary"
+                          sx={{ letterSpacing: 0.4, fontWeight: 600 }}
                         >
-                          English translation
+                          English Translation
                         </Typography>
                         {translatedTitle && translatedTitle !== article.title && (
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ fontStyle: "italic" }}
-                          >
+                          <Typography variant="h6" component="h3" sx={{ fontStyle: "italic" }}>
                             {translatedTitle}
                           </Typography>
                         )}
-                        {translatedDescription &&
-                          translatedDescription !== article.description && (
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{ fontStyle: "italic" }}
-                            >
-                              {translatedDescription}
-                            </Typography>
-                          )}
+                        {translatedDescription && translatedDescription !== article.description && (
+                          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
+                            {translatedDescription}
+                          </Typography>
+                        )}
                       </Stack>
+                    )}
+
+                    {translationState.status === "error" && (
+                      <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                        {translationState.error}
+                      </Alert>
                     )}
                   </Stack>
                 </CardContent>
@@ -338,15 +361,13 @@ export default function NewsFeed() {
                     spacing={2}
                     sx={{ width: "100%" }}
                   >
-                    {chipConfig && (
-                      <Chip
-                        label={chipConfig.label}
-                        size="small"
-                        color={chipConfig.color}
-                        variant="outlined"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    )}
+                    <Chip
+                      label={countryLabel}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ fontWeight: 600 }}
+                    />
 
                     <Button
                       component={MuiLink}
@@ -387,9 +408,9 @@ export default function NewsFeed() {
           </Typography>
         </Stack>
 
-        <PerspectiveToggle
-          value={originCountry}
-          onChange={handlePerspectiveChange}
+        <CountrySelector
+          value={country}
+          onChange={handleCountryChange}
           disabled={status === "loading"}
         />
 

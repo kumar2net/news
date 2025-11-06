@@ -45,7 +45,6 @@ const fetchArticles = async (params = {}) => {
     params: {
       apiKey,
       sortBy: "publishedAt",
-      language: "en",
       pageSize: 20,
       ...params,
     },
@@ -113,136 +112,78 @@ const translateManyToEnglish = async (texts = []) => {
 };
 
 app.get("/api/news", async (req, res) => {
-  const topic =
-    typeof req.query.topic === "string" && req.query.topic.trim().length > 0
-      ? req.query.topic.trim()
-      : "politics";
+  const category =
+    typeof req.query.category === "string" && req.query.category.trim().length > 0
+      ? req.query.category.trim()
+      : undefined;
 
-  const originParam =
-    typeof req.query.originCountry === "string"
-      ? req.query.originCountry.toLowerCase()
-      : "mixed";
-
-  const originCountry = ["ir", "global", "mixed"].includes(originParam)
-    ? originParam
-    : "mixed";
+  const countryParam =
+    typeof req.query.country === "string" && req.query.country.trim().length > 0
+      ? req.query.country.trim().toLowerCase()
+      : "all";
 
   if (!hasApiKey) {
-    const demoArticles = getSampleArticles(originCountry);
+    const demoArticles = getSampleArticles(countryParam === "all" ? "mixed" : countryParam);
     return res.json(demoArticles);
   }
 
   try {
-    let sourceMetadata = new Map();
-    let sourceIds = [];
     const requestedPageSize = Number.parseInt(req.query.pageSize, 10);
     const pageSize = Number.isFinite(requestedPageSize)
-      ? Math.min(Math.max(requestedPageSize, 1), 50)
-      : undefined;
+      ? Math.min(Math.max(requestedPageSize, 1), 100)
+      : 50;
 
-    if (originCountry === "ir" || originCountry === "global") {
-      const allSources = await fetchSources();
-      const filteredSources = allSources.filter((source) => {
-        if (!source || !source.country) return false;
-        return originCountry === "ir"
-          ? source.country.toLowerCase() === "ir"
-          : source.country.toLowerCase() !== "ir";
-      });
+    let allArticles = [];
 
-      filteredSources.forEach((source) => {
-        if (source.id) {
-          sourceIds.push(source.id);
-          sourceMetadata.set(source.id, source.country?.toLowerCase() ?? null);
-        }
-      });
-
-      if (!sourceIds.length) {
-        return res.json([]);
-      }
-    } else {
-      const allSources = await fetchSources();
-      allSources.forEach((source) => {
-        if (source?.id) {
-          sourceMetadata.set(source.id, source.country?.toLowerCase() ?? null);
-        }
-      });
-    }
-
-    const params = {
-      q: topic,
-      ...(pageSize ? { pageSize } : {}),
-    };
-
-    if (sourceIds.length) {
-      params.sources = sourceIds.slice(0, 20).join(",");
-    }
-
-    const articles = await fetchArticles(params);
-
-    let formatted = articles
-      .filter((article) => article && article.url && article.title)
-      .map((article) => {
-        const sourceId = article.source?.id ?? null;
-        const countryCode = sourceId ? sourceMetadata.get(sourceId) : null;
-        let originTag = null;
-
-        if (countryCode) {
-          originTag = countryCode === "ir" ? "ir" : "global";
-        } else if (originCountry === "ir" || originCountry === "global") {
-          originTag = originCountry;
-        }
-
-        return {
-          title: article.title,
-          description: article.description ?? null,
-          url: article.url,
-          source: { name: article.source?.name ?? "Unknown source" },
-          country: countryCode ?? null,
-          origin: originTag,
-        };
-      });
-
-    if (originCountry === "mixed" && formatted.length) {
-      formatted = await Promise.all(
-        formatted.map(async (article) => {
-          const enTranslations = {};
-
-          if (hasPersianCharacters(article.title)) {
-            const translatedTitle = await translateTextToEnglish(article.title);
-            if (translatedTitle && translatedTitle !== article.title) {
-              enTranslations.title = translatedTitle;
-            }
-          }
-
-          if (hasPersianCharacters(article.description)) {
-            const translatedDescription = await translateTextToEnglish(
-              article.description,
-            );
-            if (
-              translatedDescription &&
-              translatedDescription !== article.description
-            ) {
-              enTranslations.description = translatedDescription;
-            }
-          }
-
-          if (Object.keys(enTranslations).length === 0) {
-            return article;
-          }
-
-          return {
-            ...article,
-            translations: {
-              ...article.translations,
-              en: {
-                ...(article.translations?.en ?? {}),
-                ...enTranslations,
-              },
+    if (countryParam === "all") {
+      // For "all", fetch from multiple countries
+      const topCountries = ["us", "gb", "in", "au", "ca"];
+      const promises = topCountries.map(async (country) => {
+        try {
+          const response = await axios.get(`${baseUrl}/top-headlines`, {
+            params: {
+              apiKey,
+              country,
+              category,
+              pageSize: Math.ceil(pageSize / topCountries.length),
             },
-          };
-        }),
-      );
+          });
+          const articles = Array.isArray(response.data?.articles)
+            ? response.data.articles
+            : [];
+          return articles.map((article) => ({ ...article, country }));
+        } catch (err) {
+          console.warn(`Failed to fetch news for ${country}:`, err.message);
+          return [];
+        }
+      });
+
+      const results = await Promise.all(promises);
+      allArticles = results.flat();
+    } else {
+      // For specific country, use top-headlines endpoint
+      const response = await axios.get(`${baseUrl}/top-headlines`, {
+        params: {
+          apiKey,
+          country: countryParam,
+          category,
+          pageSize,
+        },
+      });
+      allArticles = Array.isArray(response.data?.articles)
+        ? response.data.articles.map((article) => ({ ...article, country: countryParam }))
+        : [];
     }
+
+    const formatted = allArticles
+      .filter((article) => article && article.url && article.title)
+      .map((article) => ({
+        title: article.title,
+        description: article.description ?? null,
+        url: article.url,
+        source: { name: article.source?.name ?? "Unknown source" },
+        country: article.country ?? null,
+      }));
 
     res.json(formatted);
   } catch (error) {

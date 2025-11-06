@@ -23,11 +23,12 @@ export default function Sources() {
             </Typography>
           </Stack>
           <Typography variant="h3" fontWeight={800} sx={{ letterSpacing: "-0.02em" }}>
-            Spot fresh voices and keep bias in check
+            Discover local news sources from 50+ countries
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Jump between domestic and global outlets and instantly translate
-            their bios so you know exactly who is shaping the narrative.
+            Browse news sources from 50+ countries. Filter by country and
+            language. Note: NewsAPI primarily indexes English-language sources.
+            Translate descriptions to understand each publisher's focus.
           </Typography>
         </Stack>
       </Box>
