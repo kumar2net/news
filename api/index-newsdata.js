@@ -141,7 +141,7 @@ app.get("/api/news", async (req, res) => {
       const client = getNewsDataClient(newsDataApiKey);
 
       const params = {
-        size: Math.min(pageSize, 50), // NewsData.io free tier max is 50
+        size: Math.min(pageSize, 10), // NewsData.io free tier max is 10
       };
 
       // Add country filter if specified (NewsData.io doesn't support 'all')
@@ -266,7 +266,7 @@ app.get("/api/search-news", ensureApiKey, async (req, res) => {
 
       const params = {
         q: req.query.q,
-        size: Math.min(Number(req.query.pageSize) || 20, 50),
+        size: Math.min(Number(req.query.pageSize) || 20, 10),
       };
 
       // Only add optional params if they're valid

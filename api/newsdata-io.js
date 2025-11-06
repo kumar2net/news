@@ -33,11 +33,16 @@ class NewsDataAPI {
    */
   async fetchNews(params = {}) {
     try {
+      const requestParams = {
+        apikey: this.apiKey,
+        ...params,
+      };
+      
+      // Log request for debugging
+      console.log('[NewsData.io] Request params:', JSON.stringify(requestParams));
+      
       const response = await axios.get(`${this.baseUrl}/news`, {
-        params: {
-          apikey: this.apiKey,
-          ...params,
-        },
+        params: requestParams,
       });
 
       return {
@@ -48,6 +53,9 @@ class NewsDataAPI {
       };
     } catch (error) {
       console.error("NewsData.io API error:", error.message);
+      if (error.response?.data) {
+        console.error('[NewsData.io] Error response:', JSON.stringify(error.response.data));
+      }
       throw error;
     }
   }
