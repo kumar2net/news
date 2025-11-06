@@ -19,6 +19,7 @@ import {
 import Grid from "@mui/material/Grid";
 import TranslateIcon from "@mui/icons-material/GTranslate";
 import CountrySelector from "./CountrySelector";
+import ApiSelector from "./ApiSelector";
 
 const toDisplayString = (value) => {
   if (typeof value === "string") {
@@ -117,9 +118,9 @@ const normalizeErrorMessage = (value) => {
 };
 
 const statusCopy = {
-  heading: "Country Selection",
+  heading: "Headlines",
   description:
-    "Browse top headlines from around the world. Select a country to see news from that region, or view all countries together. Note: Most sources are in English.",
+    "Browse political headlines worldwide. Choose a country and optionally pick the API provider.",
 };
 
 const resolveArticles = (payload) => {
@@ -130,6 +131,7 @@ const resolveArticles = (payload) => {
 
 export default function NewsFeed() {
   const [country, setCountry] = React.useState("all");
+  const [provider, setProvider] = React.useState("auto");
   const [articles, setArticles] = React.useState([]);
   const [status, setStatus] = React.useState("loading");
   const [error, setError] = React.useState(null);
@@ -137,15 +139,17 @@ export default function NewsFeed() {
   const [, startArticlesTransition] = React.useTransition();
   const [, startCountryTransition] = React.useTransition();
 
-  const loadArticles = React.useCallback(async (countryCode, controller) => {
+const loadArticles = React.useCallback(async (countryCode, selectedProvider, controller) => {
     setStatus("loading");
     setError(null);
 
     try {
+      const params = { country: countryCode };
+      if (selectedProvider && selectedProvider !== "auto") {
+        params.provider = selectedProvider;
+      }
       const response = await axios.get("/api/news", {
-        params: {
-          country: countryCode,
-        },
+        params,
         signal: controller.signal,
       });
 
@@ -175,12 +179,12 @@ export default function NewsFeed() {
     }
   }, []);
 
-  React.useEffect(() => {
+React.useEffect(() => {
     const controller = new AbortController();
-    loadArticles(country, controller);
+    loadArticles(country, provider, controller);
 
     return () => controller.abort();
-  }, [country, loadArticles]);
+  }, [country, provider, loadArticles]);
 
   const handleCountryChange = (value) => {
     if (value === country) return;
@@ -408,11 +412,18 @@ export default function NewsFeed() {
           </Typography>
         </Stack>
 
-        <CountrySelector
-          value={country}
-          onChange={handleCountryChange}
-          disabled={status === "loading"}
-        />
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ flexWrap: "wrap" }}>
+          <CountrySelector
+            value={country}
+            onChange={handleCountryChange}
+            disabled={status === "loading"}
+          />
+          <ApiSelector
+            value={provider}
+            onChange={setProvider}
+            disabled={status === "loading"}
+          />
+        </Stack>
 
         <Divider />
 

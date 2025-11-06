@@ -1,15 +1,19 @@
-import { ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 
 const COUNTRIES = [
-  { code: "all", label: "All" },
+  { code: "all", label: "All countries" },
+  { code: "us", label: "United States" },
+  { code: "gb", label: "United Kingdom" },
+  { code: "in", label: "India" },
+  { code: "au", label: "Australia" },
+  { code: "ca", label: "Canada" },
+  // ——— More options ———
   { code: "ae", label: "UAE" },
   { code: "ar", label: "Argentina" },
   { code: "at", label: "Austria" },
-  { code: "au", label: "Australia" },
   { code: "be", label: "Belgium" },
   { code: "bg", label: "Bulgaria" },
   { code: "br", label: "Brazil" },
-  { code: "ca", label: "Canada" },
   { code: "ch", label: "Switzerland" },
   { code: "cn", label: "China" },
   { code: "co", label: "Colombia" },
@@ -18,14 +22,12 @@ const COUNTRIES = [
   { code: "de", label: "Germany" },
   { code: "eg", label: "Egypt" },
   { code: "fr", label: "France" },
-  { code: "gb", label: "UK" },
   { code: "gr", label: "Greece" },
   { code: "hk", label: "Hong Kong" },
   { code: "hu", label: "Hungary" },
   { code: "id", label: "Indonesia" },
   { code: "ie", label: "Ireland" },
   { code: "il", label: "Israel" },
-  { code: "in", label: "India" },
   { code: "it", label: "Italy" },
   { code: "jp", label: "Japan" },
   { code: "kr", label: "S. Korea" },
@@ -53,7 +55,6 @@ const COUNTRIES = [
   { code: "tr", label: "Turkey" },
   { code: "tw", label: "Taiwan" },
   { code: "ua", label: "Ukraine" },
-  { code: "us", label: "US" },
   { code: "ve", label: "Venezuela" },
   { code: "za", label: "S. Africa" },
 ];
@@ -69,47 +70,26 @@ export default function CountrySelector({
   onChange,
   disabled = false,
 }: CountrySelectorProps) {
-  const handleChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newValue: string | null
-  ) => {
-    if (newValue !== null) {
-      onChange(newValue);
-    }
+  const handleChange = (event: React.ChangeEvent<{ value: unknown }> | any) => {
+    const newValue = String(event.target.value || "");
+    if (newValue) onChange(newValue);
   };
 
   return (
-    <ToggleButtonGroup
-      value={value}
-      exclusive
-      onChange={handleChange}
-      disabled={disabled}
-      sx={{
-        flexWrap: "wrap",
-        gap: 1,
-        "& .MuiToggleButton-root": {
-          px: 2,
-          py: 1,
-          border: 1,
-          borderRadius: 2,
-          textTransform: "none",
-          fontWeight: 600,
-          fontSize: "0.875rem",
-          "&.Mui-selected": {
-            backgroundColor: "primary.main",
-            color: "primary.contrastText",
-            "&:hover": {
-              backgroundColor: "primary.dark",
-            },
-          },
-        },
-      }}
-    >
-      {COUNTRIES.map((country) => (
-        <ToggleButton key={country.code} value={country.code}>
-          {country.label}
-        </ToggleButton>
-      ))}
-    </ToggleButtonGroup>
+    <FormControl size="small" sx={{ minWidth: 180 }} disabled={disabled}>
+      <InputLabel id="country-select-label">Country</InputLabel>
+      <Select
+        labelId="country-select-label"
+        value={value}
+        label="Country"
+        onChange={handleChange}
+      >
+        {COUNTRIES.map((country) => (
+          <MenuItem key={country.code} value={country.code}>
+            {country.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
   );
 }

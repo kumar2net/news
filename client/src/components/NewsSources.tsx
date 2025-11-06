@@ -20,6 +20,7 @@ import Grid from "@mui/material/Grid";
 import Select from "@mui/material/Select";
 import type { SelectChangeEvent } from "@mui/material/Select";
 import TranslateIcon from "@mui/icons-material/GTranslate";
+import ApiSelector from "./ApiSelector";
 
 const COUNTRIES = [
   { code: "ae", name: "United Arab Emirates" },
@@ -181,6 +182,7 @@ const initialTranslationState: TranslationState = {
 export default function NewsSources() {
   const [country, setCountry] = React.useState("us");
   const [language, setLanguage] = React.useState("all");
+  const [provider, setProvider] = React.useState<"auto" | "newsapi" | "newsdata">("auto");
   const [sources, setSources] = React.useState<Source[]>([]);
   const [status, setStatus] = React.useState<"loading" | "success" | "error">(
     "loading",
@@ -191,17 +193,22 @@ export default function NewsSources() {
   >({});
   const [, startSourcesTransition] = React.useTransition();
 
-  const loadSources = React.useCallback(
-    async (countryCode: string, languageCode: string, controller: AbortController) => {
+const loadSources = React.useCallback(
+    async (countryCode: string, languageCode: string, controller: AbortController, selectedProvider: "auto" | "newsapi" | "newsdata" = "auto") => {
       setStatus("loading");
       setError(null);
 
       try {
+        const params: Record<string, string> = {
+          country: countryCode,
+          language: languageCode,
+        };
+        if (selectedProvider && selectedProvider !== "auto") {
+          // backend may ignore this for sources; safe to pass
+          params.provider = selectedProvider;
+        }
         const response = await axios.get("/api/get-sources", {
-          params: {
-            country: countryCode,
-            language: languageCode,
-          },
+          params,
           signal: controller.signal,
         });
 
@@ -238,10 +245,10 @@ export default function NewsSources() {
 
   React.useEffect(() => {
     const controller = new AbortController();
-    loadSources(country, language, controller);
+    loadSources(country, language, controller, provider);
 
     return () => controller.abort();
-  }, [country, language, loadSources]);
+  }, [country, language, provider, loadSources]);
 
   const handleCountryChange = (event: SelectChangeEvent<string>) => {
     setCountry(event.target.value);
@@ -507,6 +514,8 @@ export default function NewsSources() {
               ))}
             </Select>
           </FormControl>
+
+          <ApiSelector value={provider} onChange={setProvider} disabled={status === "loading"} />
         </Stack>
 
         <Divider />

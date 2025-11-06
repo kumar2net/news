@@ -16,6 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
+import ApiSelector from "./ApiSelector";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -69,6 +70,7 @@ export default function NewsSearch() {
   const [articles, setArticles] = React.useState<Article[]>([]);
   const [status, setStatus] = React.useState<Status>("idle");
   const [error, setError] = React.useState<string | null>(null);
+  const [provider, setProvider] = React.useState<"auto" | "newsapi" | "newsdata">("auto");
 
   const apiKey = React.useMemo(() => {
     try {
@@ -115,7 +117,7 @@ export default function NewsSearch() {
           const baseUrl =
             apiKey && apiKey.length > 0
               ? `https://newsapi.org/v2/everything?${params.toString()}&apiKey=${apiKey}`
-              : `${API_BASE}/search-news?${params.toString()}`;
+              : `${API_BASE}/search-news?${params.toString()}${provider !== "auto" ? `&provider=${provider}` : ""}`;
 
           const response = await fetch(baseUrl, { signal: controller.signal });
           const contentType = response.headers.get("content-type") ?? "";
@@ -168,7 +170,7 @@ export default function NewsSearch() {
     fetchArticles();
 
     return () => controller.abort();
-  }, [topics, apiKey]);
+  }, [topics, apiKey, provider]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -209,7 +211,7 @@ export default function NewsSearch() {
         <Box
           component="form"
           onSubmit={handleSubmit}
-          sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}
+          sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}
         >
           <TextField
             value={query}
@@ -218,6 +220,7 @@ export default function NewsSearch() {
             placeholder="gen ai, pixel, mac os"
             fullWidth
           />
+          <ApiSelector value={provider} onChange={setProvider} disabled={status === "loading"} />
           <Button
             type="submit"
             variant="contained"
