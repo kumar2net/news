@@ -1,4 +1,5 @@
 import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material/Select";
 
 const COUNTRIES = [
   { code: "all", label: "All countries" },
@@ -70,8 +71,8 @@ export default function CountrySelector({
   onChange,
   disabled = false,
 }: CountrySelectorProps) {
-  const handleChange = (event: React.ChangeEvent<{ value: unknown }> | any) => {
-    const newValue = String(event.target.value || "");
+  const handleChange = (event: SelectChangeEvent<string>) => {
+    const newValue = event.target.value as string;
     if (newValue) onChange(newValue);
   };
 
