@@ -13,7 +13,7 @@ Unified Node/Express server that proxies to NewsAPI and/or NewsData.io and serve
 ## Setup
 1) Install deps
 ```bash
-pnpm install
+npm install
 ```
 
 2) Configure environment variables
@@ -43,9 +43,9 @@ DEFAULT_PAGE_SIZE=20
 
 3) Run
 ```bash
-pnpm run dev      # nodemon api server at http://localhost:3000
+npm run dev      # nodemon api server at http://localhost:3000
 # or
-pnpm start        # node (no auto-reload)
+npm start        # node (no auto-reload)
 ```
 On startup you’ll see which providers are active and the default provider.
 
@@ -77,9 +77,9 @@ Client tips:
 ## Frontend
 - The UI is already built into `public/` and served by the API when available.
 - We updated the hero heading to “Headlines from around the world”.
-- If you later add a real frontend app, reintroduce scripts as needed; for now, `pnpm run dev` only runs the backend.
+- If you later add a real frontend app, reintroduce scripts as needed; for now, `npm run dev` only runs the backend.
 
-## NPM Scripts (pnpm)
+## NPM Scripts
 - `dev` — `nodemon api/index-newsdata.js`
 - `start` — `node api/index-newsdata.js`
 - `test:newsdata` — `node test-newsdata.js`
