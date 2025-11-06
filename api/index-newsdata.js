@@ -144,18 +144,18 @@ app.get("/api/news", async (req, res) => {
         size: Math.min(pageSize, 50), // NewsData.io free tier max is 50
       };
 
-      // Add country filter if specified
-      if (countryParam !== "all") {
+      // Add country filter if specified (NewsData.io doesn't support 'all')
+      if (countryParam && countryParam !== "all" && countryParam !== "undefined") {
         params.country = countryParam;
       }
 
       // Add language filter for non-English content
-      if (languageParam) {
+      if (languageParam && languageParam !== "undefined") {
         params.language = languageParam;
       }
 
-      // Add category filter
-      if (category) {
+      // Add category filter (avoid 'undefined' string)
+      if (category && category !== "undefined") {
         params.category = category;
       }
 
@@ -266,11 +266,19 @@ app.get("/api/search-news", ensureApiKey, async (req, res) => {
 
       const params = {
         q: req.query.q,
-        language: req.query.language,
-        country: req.query.country,
-        category: req.query.category,
         size: Math.min(Number(req.query.pageSize) || 20, 50),
       };
+
+      // Only add optional params if they're valid
+      if (req.query.language && req.query.language !== "undefined" && req.query.language !== "all") {
+        params.language = req.query.language;
+      }
+      if (req.query.country && req.query.country !== "undefined" && req.query.country !== "all") {
+        params.country = req.query.country;
+      }
+      if (req.query.category && req.query.category !== "undefined") {
+        params.category = req.query.category;
+      }
 
       const result = await client.fetchNews(params);
       
