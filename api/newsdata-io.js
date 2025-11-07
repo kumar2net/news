@@ -131,7 +131,11 @@ class NewsDataAPI {
       publishedAt: article.pubDate,
       source: {
         id: article.source_id || null,
-        name: article.source_name || article.source_id || "Unknown",
+        // Prefer a human-friendly source name; trim whitespace and fall back
+        // to source_id or a consistent "Unknown source" label when missing.
+        name:
+          (article.source_name || article.source_id)?.toString().trim() ||
+          "Unknown source",
       },
       
       // Additional NewsData.io fields

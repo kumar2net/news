@@ -649,12 +649,39 @@ app.use((req, res) => {
 const handler = (req, res) => app(req, res);
 
 if (!isServerless) {
-  app.listen(port, () => {
-    console.log(`API server listening on http://localhost:${port}`);
-    console.log(`NewsAPI: ${hasNewsApiKey ? "✓" : "✗"}`);
-    console.log(`NewsData.io: ${hasNewsDataKey ? "✓" : "✗"}`);
-    console.log(`Default provider: ${defaultNewsProvider}`);
-  });
+  // Start server with a small retry when the desired port is already in use.
+  // This prevents an unhandled 'error' crash when port 3000 is occupied.
+  const startServer = (startPort, maxRetries = 5) => {
+    let attempts = 0;
+
+    const tryListen = (p) => {
+      const server = app.listen(p, () => {
+        console.log(`API server listening on http://localhost:${p}`);
+        console.log(`NewsAPI: ${hasNewsApiKey ? "✓" : "✗"}`);
+        console.log(`NewsData.io: ${hasNewsDataKey ? "✓" : "✗"}`);
+        console.log(`Default provider: ${defaultNewsProvider}`);
+      });
+
+      server.on("error", (err) => {
+        if (err && err.code === "EADDRINUSE" && attempts < maxRetries) {
+          attempts += 1;
+          const nextPort = Number(p) + 1;
+          console.warn(
+            `Port ${p} in use, trying port ${nextPort} (attempt ${attempts}/${maxRetries})...`,
+          );
+          // small delay before retrying to avoid tight loop
+          setTimeout(() => tryListen(nextPort), 200);
+        } else {
+          console.error("Failed to start server:", err && err.message ? err.message : err);
+          process.exit(1);
+        }
+      });
+    };
+
+    tryListen(Number(startPort) || 3000);
+  };
+
+  startServer(port, 5);
 }
 
 // Export for Vercel serverless
