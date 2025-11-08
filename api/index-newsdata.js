@@ -323,21 +323,37 @@ app.get("/api/news", async (req, res) => {
     }
 
     // Format articles for consistent response
-    const formatted = allArticles
-      .filter((article) => article && article.url && article.title)
-      .map((article) => ({
-        title: article.title,
-        description: article.description ?? null,
-        url: article.url,
-        urlToImage: article.urlToImage ?? null,
-        publishedAt: article.publishedAt ?? null,
-        source: { name: article.source?.name ?? "Unknown source" },
-        country: article.country ?? null,
-        language: article.language ?? null,
-        category: article.category ?? null,
-        keywords: article.keywords ?? null,
-        author: article.author ?? null,
-      }));
+    const formatted = await Promise.all(
+      allArticles
+        .filter((article) => article && article.url && article.title)
+        .map(async (article) => {
+          const art = {
+            title: article.title,
+            description: article.description ?? null,
+            url: article.url,
+            urlToImage: article.urlToImage ?? null,
+            publishedAt: article.publishedAt ?? null,
+            source: { name: article.source?.name ?? "Unknown source" },
+            country: article.country ?? null,
+            language: article.language ?? null,
+            category: article.category ?? null,
+            keywords: article.keywords ?? null,
+            author: article.author ?? null,
+          };
+
+          if (
+            art.language &&
+            art.language !== "en" &&
+            art.description
+          ) {
+            const translated = await translateTextToEnglish(art.description);
+            if (translated) {
+              art.description = `${art.description}<br/><hr/><b>Translated:</b><br/>${translated}`;
+            }
+          }
+          return art;
+        }),
+    );
 
     res.json(formatted);
   } catch (error) {
