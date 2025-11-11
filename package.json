@@ -8,7 +8,7 @@
     "start:legacy": "node api/index.js",
     "mcp": "node src/server.js",
     "backend": "nodemon api/index-newsdata.js",
-    "dev": "pnpm run backend",
+    "dev": "npm run backend",
     "build": "echo 'No frontend build step; serving static files from public/'",
     "test:newsdata": "node test-newsdata.js",
     "compare": "node compare-apis.js"

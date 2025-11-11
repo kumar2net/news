@@ -1,0 +1,42 @@
+:root {
+  --pulseboard-header-bg: rgba(255, 255, 255, 0.95);
+  --pulseboard-header-border: rgba(111, 79, 210, 0.2);
+  --pulseboard-header-shadow: 0 10px 30px rgba(71, 42, 128, 0.18);
+  --pulseboard-header-color: #2f1a60;
+}
+
+.MuiAppBar-root {
+  background: var(--pulseboard-header-bg) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--pulseboard-header-border);
+  box-shadow: var(--pulseboard-header-shadow);
+}
+
+.MuiAppBar-root .MuiIconButton-root,
+.MuiAppBar-root .MuiTypography-root {
+  color: var(--pulseboard-header-color) !important;
+}
+
+.MuiAppBar-root .MuiSvgIcon-root {
+  fill: currentColor;
+}
+
+.MuiAppBar-root .MuiIconButton-root {
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(47, 26, 96, 0.12);
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.MuiAppBar-root .MuiIconButton-root:hover,
+.MuiAppBar-root .MuiIconButton-root:focus-visible {
+  background-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 6px 16px rgba(71, 42, 128, 0.18);
+}
+
+@media (max-width: 900px) {
+  .MuiAppBar-root {
+    box-shadow: 0 6px 20px rgba(71, 42, 128, 0.15);
+  }
+}
